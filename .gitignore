@@ -1,0 +1,4 @@
+﻿config.txt
+eod_logs/
+__pycache__/
+*.pyc
