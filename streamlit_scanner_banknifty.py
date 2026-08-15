@@ -73,7 +73,8 @@ SCORING_INTERVAL_SEC = 60   # how often candidates are recomputed + logged
 
 CANDIDATE_FIELDNAMES = [
     "timestamp", "symbol", "rvol", "pattern", "bias", "ltp", "zone_level",
-    "distance_pct", "vwap", "zone_strength", "oi_signal", "aggression", "score",
+    "distance_pct", "vwap", "zone_strength", "oi_signal", "aggression",
+    "trend_signal", "score",
 ]
 
 # ---------------------------------------------------------------------------
@@ -150,13 +151,14 @@ def load_today_prep():
 # SAME SCORING LOGIC AS THE CONSOLE SCANNER
 # ---------------------------------------------------------------------------
 class SymbolState:
-    def __init__(self, symbol, instrument_key, futures_instrument_key, sr_data, rvol_baseline):
+    def __init__(self, symbol, instrument_key, futures_instrument_key, sr_data, rvol_baseline, trend_indicators=None):
         self.symbol = symbol
         self.instrument_key = instrument_key
         self.futures_instrument_key = futures_instrument_key
         self.resistance_zones = sr_data.get("resistance_zones", [])
         self.support_zones = sr_data.get("support_zones", [])
         self.rvol_baseline = rvol_baseline
+        self.trend_indicators = trend_indicators or {}
 
         self.last_price = None
         self.atp = None
@@ -262,6 +264,41 @@ class SymbolState:
         valid.sort(key=lambda c: c[2])
         return valid[0]
 
+    def trend_weight(self, bias):
+        """Daily EMA50/200 + RSI + MACD trend regime, computed once at prep
+        time - agreeing with the intraday pattern's bias boosts the score,
+        fighting the daily trend discounts it. See the console scanner's
+        SymbolState.trend_weight() for the identical logic/rationale."""
+        ti = self.trend_indicators
+        weight = 1.0
+        reasons = []
+
+        ema_trend = ti.get("ema_trend")
+        if ema_trend in ("bullish", "golden_cross"):
+            weight *= 1.15 if bias == "bullish" else 0.8
+            reasons.append(f"ema:{ema_trend}")
+        elif ema_trend in ("bearish", "death_cross"):
+            weight *= 1.15 if bias == "bearish" else 0.8
+            reasons.append(f"ema:{ema_trend}")
+
+        rsi_zone = ti.get("rsi_zone")
+        if rsi_zone == "overbought":
+            weight *= 0.85 if bias == "bullish" else 1.1
+            reasons.append("rsi:overbought")
+        elif rsi_zone == "oversold":
+            weight *= 0.85 if bias == "bearish" else 1.1
+            reasons.append("rsi:oversold")
+
+        macd_state = ti.get("macd_state")
+        if macd_state in ("bullish", "bullish_cross"):
+            weight *= 1.1 if bias == "bullish" else 0.85
+            reasons.append(f"macd:{macd_state}")
+        elif macd_state in ("bearish", "bearish_cross"):
+            weight *= 1.1 if bias == "bearish" else 0.85
+            reasons.append(f"macd:{macd_state}")
+
+        return round(weight, 3), ",".join(reasons) if reasons else "no_data"
+
 
 def evaluate(states):
     results = []
@@ -306,7 +343,9 @@ def evaluate(states):
         else:
             aggression_weight = 1.0
 
-        score = (1 / max(dist_pct, 0.01)) * rvol * (1 + strength * 0.1) * oi_weight * aggression_weight
+        trend_wt, trend_reason = state.trend_weight(bias)
+
+        score = (1 / max(dist_pct, 0.01)) * rvol * (1 + strength * 0.1) * oi_weight * aggression_weight * trend_wt
         results.append({
             "symbol": sym, "pattern": pattern, "bias": bias,
             "ltp": round(state.last_price, 2), "zone_level": level,
@@ -314,6 +353,7 @@ def evaluate(states):
             "vwap": round(vwap, 2), "zone_strength": strength,
             "oi_signal": oi_class or "no_data",
             "aggression": aggression or "no_data",
+            "trend_signal": trend_reason,
             "score": round(score, 2),
         })
 
@@ -472,6 +512,7 @@ def scoring_and_ws_thread():
                 {"resistance_zones": info.get("resistance_zones", []),
                  "support_zones": info.get("support_zones", [])},
                 info.get("rvol_baseline", {}),
+                info.get("trend_indicators", {}),
             )
             states[symbol] = state
             price_states_by_key[instrument_key] = state
@@ -585,7 +626,7 @@ if candidates:
     df = pd.DataFrame(candidates)
     df = df[["symbol", "rvol", "pattern", "bias", "ltp", "zone_level",
              "distance_pct", "vwap", "zone_strength", "oi_signal",
-             "aggression", "score"]]
+             "aggression", "trend_signal", "score"]]
 
     def highlight_bias(row):
         color = "background-color: #d4f7d4" if row["bias"] == "bullish" else "background-color: #f7d4d4"

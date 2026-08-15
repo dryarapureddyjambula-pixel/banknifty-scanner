@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-15T20:02:43.650737",
+  "generated_at": "2026-08-15T23:29:58.758766",
   "stocks": {
     "PNB": {
       "instrument_key": "NSE_EQ|INE160A01022",
@@ -7,7 +7,19 @@
       "futures_trading_symbol": "PNB FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 115.64,
+          "strength": 3
+        },
+        {
+          "level": 105.19,
+          "strength": 1
+        },
+        {
           "level": 107.55,
+          "strength": 1
+        },
+        {
+          "level": 108.06,
           "strength": 1
         },
         {
@@ -31,33 +43,85 @@
           "strength": 1
         },
         {
+          "level": 112.89,
+          "strength": 1
+        },
+        {
           "level": 113.38,
           "strength": 1
         },
         {
-          "level": 115.6,
+          "level": 114.17,
+          "strength": 1
+        },
+        {
+          "level": 115.0,
+          "strength": 1
+        },
+        {
+          "level": 117.85,
+          "strength": 1
+        },
+        {
+          "level": 122.63,
+          "strength": 1
+        },
+        {
+          "level": 124.48,
+          "strength": 1
+        },
+        {
+          "level": 125.1,
+          "strength": 1
+        },
+        {
+          "level": 126.16,
+          "strength": 1
+        },
+        {
+          "level": 127.8,
+          "strength": 1
+        },
+        {
+          "level": 128.24,
+          "strength": 1
+        },
+        {
+          "level": 129.01,
           "strength": 1
         },
         {
           "level": 132.73,
           "strength": 1
+        },
+        {
+          "level": 135.15,
+          "strength": 1
         }
       ],
       "support_zones": [
+        {
+          "level": 100.52,
+          "strength": 3
+        },
+        {
+          "level": 102.63,
+          "strength": 2
+        },
+        {
+          "level": 108.68,
+          "strength": 2
+        },
+        {
+          "level": 121.1,
+          "strength": 2
+        },
         {
           "level": 98.5,
           "strength": 1
         },
         {
           "level": 99.79,
-          "strength": 1
-        },
-        {
-          "level": 100.45,
-          "strength": 1
-        },
-        {
-          "level": 102.67,
           "strength": 1
         },
         {
@@ -77,15 +141,15 @@
           "strength": 1
         },
         {
+          "level": 107.3,
+          "strength": 1
+        },
+        {
           "level": 107.82,
           "strength": 1
         },
         {
           "level": 108.2,
-          "strength": 1
-        },
-        {
-          "level": 108.71,
           "strength": 1
         },
         {
@@ -97,11 +161,43 @@
           "strength": 1
         },
         {
+          "level": 112.02,
+          "strength": 1
+        },
+        {
           "level": 112.3,
+          "strength": 1
+        },
+        {
+          "level": 112.75,
+          "strength": 1
+        },
+        {
+          "level": 115.13,
+          "strength": 1
+        },
+        {
+          "level": 116.6,
+          "strength": 1
+        },
+        {
+          "level": 117.55,
+          "strength": 1
+        },
+        {
+          "level": 118.15,
+          "strength": 1
+        },
+        {
+          "level": 118.86,
+          "strength": 1
+        },
+        {
+          "level": 119.55,
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 671992.4,
         "09:20": 1143115.2,
@@ -178,6 +274,17 @@
         "15:15": 14908752.4,
         "15:20": 14908752.4,
         "15:25": 15131994.8
+      },
+      "trend_indicators": {
+        "ema50": 110.69,
+        "ema200": 111.15,
+        "ema_trend": "bearish",
+        "rsi14": 68.6,
+        "rsi_zone": "neutral",
+        "macd_line": 2.475,
+        "macd_signal": 2.02,
+        "macd_histogram": 0.456,
+        "macd_state": "bullish"
       }
     },
     "KOTAKBANK": {
@@ -187,6 +294,26 @@
       "resistance_zones": [
         {
           "level": 386.23,
+          "strength": 2
+        },
+        {
+          "level": 405.05,
+          "strength": 2
+        },
+        {
+          "level": 430.95,
+          "strength": 2
+        },
+        {
+          "level": 432.52,
+          "strength": 2
+        },
+        {
+          "level": 434.75,
+          "strength": 2
+        },
+        {
+          "level": 445.6,
           "strength": 2
         },
         {
@@ -222,11 +349,15 @@
           "strength": 1
         },
         {
+          "level": 397.8,
+          "strength": 1
+        },
+        {
           "level": 400.0,
           "strength": 1
         },
         {
-          "level": 405.0,
+          "level": 407.8,
           "strength": 1
         },
         {
@@ -234,15 +365,55 @@
           "strength": 1
         },
         {
+          "level": 412.3,
+          "strength": 1
+        },
+        {
           "level": 413.8,
           "strength": 1
         },
         {
-          "level": 432.45,
+          "level": 424.0,
+          "strength": 1
+        },
+        {
+          "level": 425.0,
+          "strength": 1
+        },
+        {
+          "level": 433.2,
+          "strength": 1
+        },
+        {
+          "level": 436.0,
+          "strength": 1
+        },
+        {
+          "level": 441.0,
+          "strength": 1
+        },
+        {
+          "level": 446.7,
+          "strength": 1
+        },
+        {
+          "level": 448.5,
+          "strength": 1
+        },
+        {
+          "level": 453.2,
           "strength": 1
         }
       ],
       "support_zones": [
+        {
+          "level": 406.8,
+          "strength": 3
+        },
+        {
+          "level": 414.8,
+          "strength": 3
+        },
         {
           "level": 363.2,
           "strength": 2
@@ -253,6 +424,18 @@
         },
         {
           "level": 372.45,
+          "strength": 2
+        },
+        {
+          "level": 386.35,
+          "strength": 2
+        },
+        {
+          "level": 389.75,
+          "strength": 2
+        },
+        {
+          "level": 422.0,
           "strength": 2
         },
         {
@@ -280,11 +463,11 @@
           "strength": 1
         },
         {
-          "level": 386.5,
+          "level": 387.0,
           "strength": 1
         },
         {
-          "level": 389.9,
+          "level": 394.1,
           "strength": 1
         },
         {
@@ -292,11 +475,47 @@
           "strength": 1
         },
         {
-          "level": 415.0,
+          "level": 400.5,
+          "strength": 1
+        },
+        {
+          "level": 403.3,
+          "strength": 1
+        },
+        {
+          "level": 404.1,
+          "strength": 1
+        },
+        {
+          "level": 411.8,
+          "strength": 1
+        },
+        {
+          "level": 412.6,
+          "strength": 1
+        },
+        {
+          "level": 413.3,
+          "strength": 1
+        },
+        {
+          "level": 424.4,
+          "strength": 1
+        },
+        {
+          "level": 426.0,
+          "strength": 1
+        },
+        {
+          "level": 427.8,
+          "strength": 1
+        },
+        {
+          "level": 429.4,
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 337933.1,
         "09:20": 566387.4,
@@ -373,6 +592,17 @@
         "15:15": 9026300.2,
         "15:20": 9026300.2,
         "15:25": 9535206.6
+      },
+      "trend_indicators": {
+        "ema50": 389.35,
+        "ema200": 396.89,
+        "ema_trend": "bearish",
+        "rsi14": 51.1,
+        "rsi_zone": "neutral",
+        "macd_line": 1.408,
+        "macd_signal": 1.356,
+        "macd_histogram": 0.051,
+        "macd_state": "bullish"
       }
     },
     "CANBK": {
@@ -381,7 +611,47 @@
       "futures_trading_symbol": "CANBK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 151.76,
+          "strength": 2
+        },
+        {
+          "level": 109.2,
+          "strength": 1
+        },
+        {
+          "level": 110.0,
+          "strength": 1
+        },
+        {
+          "level": 113.0,
+          "strength": 1
+        },
+        {
+          "level": 115.7,
+          "strength": 1
+        },
+        {
+          "level": 116.0,
+          "strength": 1
+        },
+        {
+          "level": 117.5,
+          "strength": 1
+        },
+        {
+          "level": 119.3,
+          "strength": 1
+        },
+        {
+          "level": 124.55,
+          "strength": 1
+        },
+        {
           "level": 129.7,
+          "strength": 1
+        },
+        {
+          "level": 130.14,
           "strength": 1
         },
         {
@@ -413,7 +683,35 @@
           "strength": 1
         },
         {
+          "level": 141.45,
+          "strength": 1
+        },
+        {
           "level": 146.89,
+          "strength": 1
+        },
+        {
+          "level": 150.37,
+          "strength": 1
+        },
+        {
+          "level": 154.21,
+          "strength": 1
+        },
+        {
+          "level": 157.5,
+          "strength": 1
+        },
+        {
+          "level": 158.0,
+          "strength": 1
+        },
+        {
+          "level": 159.1,
+          "strength": 1
+        },
+        {
+          "level": 160.79,
           "strength": 1
         },
         {
@@ -423,8 +721,40 @@
       ],
       "support_zones": [
         {
+          "level": 124.63,
+          "strength": 4
+        },
+        {
           "level": 123.66,
           "strength": 2
+        },
+        {
+          "level": 103.55,
+          "strength": 1
+        },
+        {
+          "level": 104.6,
+          "strength": 1
+        },
+        {
+          "level": 105.75,
+          "strength": 1
+        },
+        {
+          "level": 106.3,
+          "strength": 1
+        },
+        {
+          "level": 107.52,
+          "strength": 1
+        },
+        {
+          "level": 111.21,
+          "strength": 1
+        },
+        {
+          "level": 114.05,
+          "strength": 1
         },
         {
           "level": 120.5,
@@ -440,10 +770,6 @@
         },
         {
           "level": 124.3,
-          "strength": 1
-        },
-        {
-          "level": 124.61,
           "strength": 1
         },
         {
@@ -469,9 +795,37 @@
         {
           "level": 134.6,
           "strength": 1
+        },
+        {
+          "level": 136.57,
+          "strength": 1
+        },
+        {
+          "level": 138.01,
+          "strength": 1
+        },
+        {
+          "level": 140.15,
+          "strength": 1
+        },
+        {
+          "level": 141.11,
+          "strength": 1
+        },
+        {
+          "level": 144.96,
+          "strength": 1
+        },
+        {
+          "level": 146.96,
+          "strength": 1
+        },
+        {
+          "level": 149.81,
+          "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 1102539.4,
         "09:20": 1741361.2,
@@ -548,6 +902,17 @@
         "15:15": 18453992.5,
         "15:20": 18453992.5,
         "15:25": 18693549.6
+      },
+      "trend_indicators": {
+        "ema50": 129.32,
+        "ema200": 130.49,
+        "ema_trend": "bearish",
+        "rsi14": 56.9,
+        "rsi_zone": "neutral",
+        "macd_line": 1.011,
+        "macd_signal": 0.374,
+        "macd_histogram": 0.637,
+        "macd_state": "bullish"
       }
     },
     "BANKBARODA": {
@@ -555,6 +920,38 @@
       "futures_instrument_key": "NSE_FO|58123",
       "futures_trading_symbol": "BANKBARODA FUT 25 AUG 26",
       "resistance_zones": [
+        {
+          "level": 271.98,
+          "strength": 2
+        },
+        {
+          "level": 294.98,
+          "strength": 2
+        },
+        {
+          "level": 240.78,
+          "strength": 1
+        },
+        {
+          "level": 241.6,
+          "strength": 1
+        },
+        {
+          "level": 248.5,
+          "strength": 1
+        },
+        {
+          "level": 249.0,
+          "strength": 1
+        },
+        {
+          "level": 249.68,
+          "strength": 1
+        },
+        {
+          "level": 250.57,
+          "strength": 1
+        },
         {
           "level": 254.35,
           "strength": 1
@@ -564,15 +961,27 @@
           "strength": 1
         },
         {
+          "level": 257.9,
+          "strength": 1
+        },
+        {
+          "level": 258.5,
+          "strength": 1
+        },
+        {
           "level": 270.25,
           "strength": 1
         },
         {
-          "level": 271.9,
+          "level": 273.1,
           "strength": 1
         },
         {
           "level": 274.25,
+          "strength": 1
+        },
+        {
+          "level": 279.9,
           "strength": 1
         },
         {
@@ -584,11 +993,63 @@
           "strength": 1
         },
         {
+          "level": 293.25,
+          "strength": 1
+        },
+        {
+          "level": 295.75,
+          "strength": 1
+        },
+        {
+          "level": 303.95,
+          "strength": 1
+        },
+        {
+          "level": 309.25,
+          "strength": 1
+        },
+        {
+          "level": 311.8,
+          "strength": 1
+        },
+        {
+          "level": 313.35,
+          "strength": 1
+        },
+        {
           "level": 325.5,
           "strength": 1
         }
       ],
       "support_zones": [
+        {
+          "level": 280.72,
+          "strength": 3
+        },
+        {
+          "level": 230.67,
+          "strength": 2
+        },
+        {
+          "level": 234.68,
+          "strength": 2
+        },
+        {
+          "level": 241.03,
+          "strength": 2
+        },
+        {
+          "level": 231.72,
+          "strength": 1
+        },
+        {
+          "level": 236.01,
+          "strength": 1
+        },
+        {
+          "level": 237.61,
+          "strength": 1
+        },
         {
           "level": 238.45,
           "strength": 1
@@ -598,11 +1059,11 @@
           "strength": 1
         },
         {
-          "level": 241.0,
+          "level": 243.6,
           "strength": 1
         },
         {
-          "level": 243.6,
+          "level": 247.17,
           "strength": 1
         },
         {
@@ -618,15 +1079,47 @@
           "strength": 1
         },
         {
+          "level": 262.6,
+          "strength": 1
+        },
+        {
+          "level": 264.3,
+          "strength": 1
+        },
+        {
           "level": 266.7,
+          "strength": 1
+        },
+        {
+          "level": 270.5,
           "strength": 1
         },
         {
           "level": 277.05,
           "strength": 1
+        },
+        {
+          "level": 281.35,
+          "strength": 1
+        },
+        {
+          "level": 284.2,
+          "strength": 1
+        },
+        {
+          "level": 285.5,
+          "strength": 1
+        },
+        {
+          "level": 294.6,
+          "strength": 1
+        },
+        {
+          "level": 295.7,
+          "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 297836.5,
         "09:20": 471463.0,
@@ -703,6 +1196,17 @@
         "15:15": 7787601.8,
         "15:20": 7787601.8,
         "15:25": 7914111.5
+      },
+      "trend_indicators": {
+        "ema50": 254.48,
+        "ema200": 263.64,
+        "ema_trend": "bearish",
+        "rsi14": 48.2,
+        "rsi_zone": "neutral",
+        "macd_line": -1.699,
+        "macd_signal": -2.893,
+        "macd_histogram": 1.194,
+        "macd_state": "bullish"
       }
     },
     "SBIN": {
@@ -711,7 +1215,51 @@
       "futures_trading_symbol": "SBIN FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 824.7,
+          "strength": 2
+        },
+        {
+          "level": 816.75,
+          "strength": 1
+        },
+        {
+          "level": 822.55,
+          "strength": 1
+        },
+        {
+          "level": 838.0,
+          "strength": 1
+        },
+        {
+          "level": 842.5,
+          "strength": 1
+        },
+        {
+          "level": 877.6,
+          "strength": 1
+        },
+        {
+          "level": 880.5,
+          "strength": 1
+        },
+        {
+          "level": 971.4,
+          "strength": 1
+        },
+        {
           "level": 978.8,
+          "strength": 1
+        },
+        {
+          "level": 983.0,
+          "strength": 1
+        },
+        {
+          "level": 999.0,
+          "strength": 1
+        },
+        {
+          "level": 1024.0,
           "strength": 1
         },
         {
@@ -739,6 +1287,10 @@
           "strength": 1
         },
         {
+          "level": 1089.8,
+          "strength": 1
+        },
+        {
           "level": 1108.0,
           "strength": 1
         },
@@ -751,14 +1303,50 @@
           "strength": 1
         },
         {
+          "level": 1225.5,
+          "strength": 1
+        },
+        {
           "level": 1234.7,
           "strength": 1
         }
       ],
       "support_zones": [
         {
+          "level": 804.33,
+          "strength": 2
+        },
+        {
           "level": 1011.55,
           "strength": 2
+        },
+        {
+          "level": 1021.25,
+          "strength": 2
+        },
+        {
+          "level": 781.7,
+          "strength": 1
+        },
+        {
+          "level": 786.55,
+          "strength": 1
+        },
+        {
+          "level": 790.0,
+          "strength": 1
+        },
+        {
+          "level": 798.5,
+          "strength": 1
+        },
+        {
+          "level": 802.85,
+          "strength": 1
+        },
+        {
+          "level": 857.25,
+          "strength": 1
         },
         {
           "level": 933.9,
@@ -769,7 +1357,27 @@
           "strength": 1
         },
         {
+          "level": 944.45,
+          "strength": 1
+        },
+        {
+          "level": 959.5,
+          "strength": 1
+        },
+        {
+          "level": 968.05,
+          "strength": 1
+        },
+        {
           "level": 975.8,
+          "strength": 1
+        },
+        {
+          "level": 988.3,
+          "strength": 1
+        },
+        {
+          "level": 994.0,
           "strength": 1
         },
         {
@@ -778,10 +1386,6 @@
         },
         {
           "level": 1007.6,
-          "strength": 1
-        },
-        {
-          "level": 1020.5,
           "strength": 1
         },
         {
@@ -797,7 +1401,7 @@
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 601659.4,
         "09:20": 888804.1,
@@ -874,6 +1478,17 @@
         "15:15": 12846562.5,
         "15:20": 12846562.5,
         "15:25": 13044985.0
+      },
+      "trend_indicators": {
+        "ema50": 1040.37,
+        "ema200": 994.3,
+        "ema_trend": "bullish",
+        "rsi14": 56.2,
+        "rsi_zone": "neutral",
+        "macd_line": 13.734,
+        "macd_signal": 10.588,
+        "macd_histogram": 3.146,
+        "macd_state": "bullish"
       }
     },
     "HDFCBANK": {
@@ -882,11 +1497,31 @@
       "futures_trading_symbol": "HDFCBANK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 1011.38,
+          "strength": 4
+        },
+        {
+          "level": 998.87,
+          "strength": 3
+        },
+        {
           "level": 758.3,
           "strength": 2
         },
         {
           "level": 819.52,
+          "strength": 2
+        },
+        {
+          "level": 1008.25,
+          "strength": 2
+        },
+        {
+          "level": 1013.45,
+          "strength": 2
+        },
+        {
+          "level": 1016.9,
           "strength": 2
         },
         {
@@ -920,15 +1555,75 @@
         {
           "level": 848.9,
           "strength": 1
+        },
+        {
+          "level": 941.45,
+          "strength": 1
+        },
+        {
+          "level": 974.4,
+          "strength": 1
+        },
+        {
+          "level": 979.65,
+          "strength": 1
+        },
+        {
+          "level": 989.85,
+          "strength": 1
+        },
+        {
+          "level": 994.0,
+          "strength": 1
+        },
+        {
+          "level": 1004.7,
+          "strength": 1
+        },
+        {
+          "level": 1006.4,
+          "strength": 1
+        },
+        {
+          "level": 1018.8,
+          "strength": 1
+        },
+        {
+          "level": 1020.5,
+          "strength": 1
         }
       ],
       "support_zones": [
+        {
+          "level": 984.85,
+          "strength": 4
+        },
         {
           "level": 732.48,
           "strength": 3
         },
         {
+          "level": 982.1,
+          "strength": 3
+        },
+        {
           "level": 726.65,
+          "strength": 2
+        },
+        {
+          "level": 939.55,
+          "strength": 2
+        },
+        {
+          "level": 973.65,
+          "strength": 2
+        },
+        {
+          "level": 976.27,
+          "strength": 2
+        },
+        {
+          "level": 988.75,
           "strength": 2
         },
         {
@@ -958,9 +1653,45 @@
         {
           "level": 812.0,
           "strength": 1
+        },
+        {
+          "level": 901.0,
+          "strength": 1
+        },
+        {
+          "level": 905.0,
+          "strength": 1
+        },
+        {
+          "level": 909.3,
+          "strength": 1
+        },
+        {
+          "level": 953.6,
+          "strength": 1
+        },
+        {
+          "level": 956.5,
+          "strength": 1
+        },
+        {
+          "level": 959.9,
+          "strength": 1
+        },
+        {
+          "level": 967.0,
+          "strength": 1
+        },
+        {
+          "level": 991.3,
+          "strength": 1
+        },
+        {
+          "level": 998.2,
+          "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 2227169.3,
         "09:20": 2914089.6,
@@ -1037,6 +1768,17 @@
         "15:15": 28388961.6,
         "15:20": 28388961.6,
         "15:25": 29214161.8
+      },
+      "trend_indicators": {
+        "ema50": 764.83,
+        "ema200": 841.41,
+        "ema_trend": "bearish",
+        "rsi14": 33.9,
+        "rsi_zone": "neutral",
+        "macd_line": -14.904,
+        "macd_signal": -13.964,
+        "macd_histogram": -0.94,
+        "macd_state": "bearish"
       }
     },
     "AUBANK": {
@@ -1049,7 +1791,63 @@
           "strength": 3
         },
         {
+          "level": 715.0,
+          "strength": 1
+        },
+        {
+          "level": 755.85,
+          "strength": 1
+        },
+        {
+          "level": 759.75,
+          "strength": 1
+        },
+        {
+          "level": 773.35,
+          "strength": 1
+        },
+        {
+          "level": 785.0,
+          "strength": 1
+        },
+        {
+          "level": 800.0,
+          "strength": 1
+        },
+        {
+          "level": 808.0,
+          "strength": 1
+        },
+        {
+          "level": 832.75,
+          "strength": 1
+        },
+        {
+          "level": 841.0,
+          "strength": 1
+        },
+        {
+          "level": 884.0,
+          "strength": 1
+        },
+        {
+          "level": 886.45,
+          "strength": 1
+        },
+        {
+          "level": 922.9,
+          "strength": 1
+        },
+        {
+          "level": 929.9,
+          "strength": 1
+        },
+        {
           "level": 932.0,
+          "strength": 1
+        },
+        {
+          "level": 966.9,
           "strength": 1
         },
         {
@@ -1057,7 +1855,31 @@
           "strength": 1
         },
         {
+          "level": 998.2,
+          "strength": 1
+        },
+        {
+          "level": 1007.25,
+          "strength": 1
+        },
+        {
+          "level": 1011.9,
+          "strength": 1
+        },
+        {
+          "level": 1019.0,
+          "strength": 1
+        },
+        {
           "level": 1025.0,
+          "strength": 1
+        },
+        {
+          "level": 1026.8,
+          "strength": 1
+        },
+        {
+          "level": 1029.95,
           "strength": 1
         },
         {
@@ -1087,8 +1909,52 @@
       ],
       "support_zones": [
         {
+          "level": 721.6,
+          "strength": 2
+        },
+        {
+          "level": 942.08,
+          "strength": 2
+        },
+        {
           "level": 947.62,
           "strength": 2
+        },
+        {
+          "level": 959.83,
+          "strength": 2
+        },
+        {
+          "level": 682.15,
+          "strength": 1
+        },
+        {
+          "level": 690.3,
+          "strength": 1
+        },
+        {
+          "level": 698.3,
+          "strength": 1
+        },
+        {
+          "level": 712.3,
+          "strength": 1
+        },
+        {
+          "level": 719.05,
+          "strength": 1
+        },
+        {
+          "level": 722.7,
+          "strength": 1
+        },
+        {
+          "level": 757.0,
+          "strength": 1
+        },
+        {
+          "level": 802.0,
+          "strength": 1
         },
         {
           "level": 831.65,
@@ -1099,7 +1965,19 @@
           "strength": 1
         },
         {
+          "level": 855.3,
+          "strength": 1
+        },
+        {
+          "level": 863.75,
+          "strength": 1
+        },
+        {
           "level": 868.75,
+          "strength": 1
+        },
+        {
+          "level": 878.8,
           "strength": 1
         },
         {
@@ -1107,7 +1985,15 @@
           "strength": 1
         },
         {
-          "level": 941.4,
+          "level": 908.6,
+          "strength": 1
+        },
+        {
+          "level": 938.4,
+          "strength": 1
+        },
+        {
+          "level": 944.1,
           "strength": 1
         },
         {
@@ -1115,7 +2001,11 @@
           "strength": 1
         },
         {
-          "level": 960.0,
+          "level": 957.4,
+          "strength": 1
+        },
+        {
+          "level": 967.0,
           "strength": 1
         },
         {
@@ -1131,7 +2021,7 @@
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 39519.8,
         "09:20": 60866.6,
@@ -1208,6 +2098,17 @@
         "15:15": 1526686.7,
         "15:20": 1526686.7,
         "15:25": 1551481.3
+      },
+      "trend_indicators": {
+        "ema50": 1038.17,
+        "ema200": 957.04,
+        "ema_trend": "bullish",
+        "rsi14": 58.1,
+        "rsi_zone": "neutral",
+        "macd_line": 15.54,
+        "macd_signal": 11.308,
+        "macd_histogram": 4.232,
+        "macd_state": "bullish"
       }
     },
     "INDUSINDBK": {
@@ -1216,15 +2117,75 @@
       "futures_trading_symbol": "INDUSINDBK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 758.95,
+          "strength": 2
+        },
+        {
+          "level": 848.3,
+          "strength": 2
+        },
+        {
+          "level": 857.08,
+          "strength": 2
+        },
+        {
+          "level": 863.27,
+          "strength": 2
+        },
+        {
+          "level": 892.58,
+          "strength": 2
+        },
+        {
+          "level": 952.85,
+          "strength": 2
+        },
+        {
           "level": 1038.0,
           "strength": 2
+        },
+        {
+          "level": 767.95,
+          "strength": 1
+        },
+        {
+          "level": 770.65,
+          "strength": 1
+        },
+        {
+          "level": 773.4,
+          "strength": 1
+        },
+        {
+          "level": 795.9,
+          "strength": 1
+        },
+        {
+          "level": 810.05,
+          "strength": 1
+        },
+        {
+          "level": 827.6,
+          "strength": 1
         },
         {
           "level": 840.85,
           "strength": 1
         },
         {
-          "level": 847.9,
+          "level": 855.5,
+          "strength": 1
+        },
+        {
+          "level": 874.4,
+          "strength": 1
+        },
+        {
+          "level": 890.9,
+          "strength": 1
+        },
+        {
+          "level": 924.7,
           "strength": 1
         },
         {
@@ -1240,11 +2201,15 @@
           "strength": 1
         },
         {
-          "level": 953.5,
+          "level": 957.9,
           "strength": 1
         },
         {
-          "level": 957.9,
+          "level": 959.6,
+          "strength": 1
+        },
+        {
+          "level": 961.9,
           "strength": 1
         },
         {
@@ -1258,7 +2223,43 @@
       ],
       "support_zones": [
         {
+          "level": 827.5,
+          "strength": 2
+        },
+        {
+          "level": 839.27,
+          "strength": 2
+        },
+        {
+          "level": 710.6,
+          "strength": 1
+        },
+        {
+          "level": 726.3,
+          "strength": 1
+        },
+        {
+          "level": 738.0,
+          "strength": 1
+        },
+        {
           "level": 750.5,
+          "strength": 1
+        },
+        {
+          "level": 765.7,
+          "strength": 1
+        },
+        {
+          "level": 777.35,
+          "strength": 1
+        },
+        {
+          "level": 779.7,
+          "strength": 1
+        },
+        {
+          "level": 798.15,
           "strength": 1
         },
         {
@@ -1270,7 +2271,31 @@
           "strength": 1
         },
         {
-          "level": 839.0,
+          "level": 806.05,
+          "strength": 1
+        },
+        {
+          "level": 823.8,
+          "strength": 1
+        },
+        {
+          "level": 826.0,
+          "strength": 1
+        },
+        {
+          "level": 830.6,
+          "strength": 1
+        },
+        {
+          "level": 833.25,
+          "strength": 1
+        },
+        {
+          "level": 851.15,
+          "strength": 1
+        },
+        {
+          "level": 863.3,
           "strength": 1
         },
         {
@@ -1278,11 +2303,23 @@
           "strength": 1
         },
         {
+          "level": 876.1,
+          "strength": 1
+        },
+        {
           "level": 881.0,
           "strength": 1
         },
         {
+          "level": 895.0,
+          "strength": 1
+        },
+        {
           "level": 900.15,
+          "strength": 1
+        },
+        {
+          "level": 903.35,
           "strength": 1
         },
         {
@@ -1302,7 +2339,7 @@
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 35940.1,
         "09:20": 55551.5,
@@ -1379,6 +2416,17 @@
         "15:15": 1016076.6,
         "15:20": 1016076.6,
         "15:25": 1053693.9
+      },
+      "trend_indicators": {
+        "ema50": 985.81,
+        "ema200": 903.18,
+        "ema_trend": "bullish",
+        "rsi14": 54.4,
+        "rsi_zone": "neutral",
+        "macd_line": 9.569,
+        "macd_signal": 12.387,
+        "macd_histogram": -2.818,
+        "macd_state": "bearish"
       }
     },
     "AXISBANK": {
@@ -1387,7 +2435,43 @@
       "futures_trading_symbol": "AXISBANK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 1064.9,
+          "strength": 2
+        },
+        {
+          "level": 1172.8,
+          "strength": 2
+        },
+        {
+          "level": 1304.3,
+          "strength": 2
+        },
+        {
+          "level": 1080.4,
+          "strength": 1
+        },
+        {
+          "level": 1095.0,
+          "strength": 1
+        },
+        {
+          "level": 1179.9,
+          "strength": 1
+        },
+        {
+          "level": 1215.2,
+          "strength": 1
+        },
+        {
           "level": 1239.0,
+          "strength": 1
+        },
+        {
+          "level": 1241.8,
+          "strength": 1
+        },
+        {
+          "level": 1247.0,
           "strength": 1
         },
         {
@@ -1399,6 +2483,18 @@
           "strength": 1
         },
         {
+          "level": 1276.1,
+          "strength": 1
+        },
+        {
+          "level": 1288.8,
+          "strength": 1
+        },
+        {
+          "level": 1291.0,
+          "strength": 1
+        },
+        {
           "level": 1308.1,
           "strength": 1
         },
@@ -1407,7 +2503,15 @@
           "strength": 1
         },
         {
+          "level": 1327.0,
+          "strength": 1
+        },
+        {
           "level": 1348.0,
+          "strength": 1
+        },
+        {
+          "level": 1360.1,
           "strength": 1
         },
         {
@@ -1429,15 +2533,55 @@
         {
           "level": 1405.7,
           "strength": 1
+        },
+        {
+          "level": 1418.3,
+          "strength": 1
         }
       ],
       "support_zones": [
         {
-          "level": 1150.3,
+          "level": 1164.03,
+          "strength": 3
+        },
+        {
+          "level": 1150.75,
+          "strength": 2
+        },
+        {
+          "level": 1210.0,
+          "strength": 2
+        },
+        {
+          "level": 1252.75,
+          "strength": 2
+        },
+        {
+          "level": 1042.5,
           "strength": 1
         },
         {
-          "level": 1165.0,
+          "level": 1052.6,
+          "strength": 1
+        },
+        {
+          "level": 1055.4,
+          "strength": 1
+        },
+        {
+          "level": 1059.0,
+          "strength": 1
+        },
+        {
+          "level": 1071.9,
+          "strength": 1
+        },
+        {
+          "level": 1125.4,
+          "strength": 1
+        },
+        {
+          "level": 1158.6,
           "strength": 1
         },
         {
@@ -1445,7 +2589,15 @@
           "strength": 1
         },
         {
-          "level": 1210.6,
+          "level": 1195.6,
+          "strength": 1
+        },
+        {
+          "level": 1216.9,
+          "strength": 1
+        },
+        {
+          "level": 1219.0,
           "strength": 1
         },
         {
@@ -1457,7 +2609,15 @@
           "strength": 1
         },
         {
-          "level": 1252.0,
+          "level": 1248.0,
+          "strength": 1
+        },
+        {
+          "level": 1255.0,
+          "strength": 1
+        },
+        {
+          "level": 1263.2,
           "strength": 1
         },
         {
@@ -1465,11 +2625,19 @@
           "strength": 1
         },
         {
+          "level": 1302.9,
+          "strength": 1
+        },
+        {
+          "level": 1316.1,
+          "strength": 1
+        },
+        {
           "level": 1345.0,
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 232495.1,
         "09:20": 331813.6,
@@ -1546,6 +2714,17 @@
         "15:15": 5087447.8,
         "15:20": 5087447.8,
         "15:25": 5257957.4
+      },
+      "trend_indicators": {
+        "ema50": 1274.4,
+        "ema200": 1259.67,
+        "ema_trend": "bullish",
+        "rsi14": 36.2,
+        "rsi_zone": "neutral",
+        "macd_line": -18.616,
+        "macd_signal": -18.563,
+        "macd_histogram": -0.054,
+        "macd_state": "bearish_cross"
       }
     },
     "FEDERALBNK": {
@@ -1554,15 +2733,83 @@
       "futures_trading_symbol": "FEDERALBNK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 298.35,
+          "strength": 2
+        },
+        {
           "level": 301.85,
           "strength": 2
+        },
+        {
+          "level": 195.41,
+          "strength": 1
+        },
+        {
+          "level": 198.2,
+          "strength": 1
+        },
+        {
+          "level": 199.73,
+          "strength": 1
+        },
+        {
+          "level": 200.47,
+          "strength": 1
+        },
+        {
+          "level": 201.24,
+          "strength": 1
+        },
+        {
+          "level": 213.44,
+          "strength": 1
+        },
+        {
+          "level": 214.45,
+          "strength": 1
+        },
+        {
+          "level": 215.18,
+          "strength": 1
+        },
+        {
+          "level": 216.8,
+          "strength": 1
+        },
+        {
+          "level": 220.0,
+          "strength": 1
+        },
+        {
+          "level": 238.99,
+          "strength": 1
+        },
+        {
+          "level": 262.0,
+          "strength": 1
+        },
+        {
+          "level": 269.4,
+          "strength": 1
+        },
+        {
+          "level": 271.1,
+          "strength": 1
         },
         {
           "level": 274.3,
           "strength": 1
         },
         {
-          "level": 298.45,
+          "level": 287.2,
+          "strength": 1
+        },
+        {
+          "level": 289.6,
+          "strength": 1
+        },
+        {
+          "level": 293.5,
           "strength": 1
         },
         {
@@ -1584,11 +2831,71 @@
       ],
       "support_zones": [
         {
+          "level": 279.82,
+          "strength": 2
+        },
+        {
           "level": 323.2,
           "strength": 2
         },
         {
+          "level": 185.11,
+          "strength": 1
+        },
+        {
+          "level": 188.4,
+          "strength": 1
+        },
+        {
+          "level": 189.05,
+          "strength": 1
+        },
+        {
+          "level": 190.5,
+          "strength": 1
+        },
+        {
+          "level": 194.84,
+          "strength": 1
+        },
+        {
+          "level": 199.6,
+          "strength": 1
+        },
+        {
+          "level": 202.34,
+          "strength": 1
+        },
+        {
+          "level": 203.69,
+          "strength": 1
+        },
+        {
+          "level": 206.39,
+          "strength": 1
+        },
+        {
+          "level": 209.84,
+          "strength": 1
+        },
+        {
+          "level": 211.52,
+          "strength": 1
+        },
+        {
+          "level": 232.42,
+          "strength": 1
+        },
+        {
+          "level": 242.3,
+          "strength": 1
+        },
+        {
           "level": 253.3,
+          "strength": 1
+        },
+        {
+          "level": 255.35,
           "strength": 1
         },
         {
@@ -1600,15 +2907,23 @@
           "strength": 1
         },
         {
+          "level": 260.1,
+          "strength": 1
+        },
+        {
+          "level": 276.0,
+          "strength": 1
+        },
+        {
           "level": 277.1,
           "strength": 1
         },
         {
-          "level": 280.0,
+          "level": 281.6,
           "strength": 1
         },
         {
-          "level": 281.6,
+          "level": 282.6,
           "strength": 1
         },
         {
@@ -1632,7 +2947,7 @@
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 149323.0,
         "09:20": 212147.0,
@@ -1709,6 +3024,17 @@
         "15:15": 3832007.3,
         "15:20": 3832007.3,
         "15:25": 3974376.7
+      },
+      "trend_indicators": {
+        "ema50": 337.46,
+        "ema200": 288.03,
+        "ema_trend": "bullish",
+        "rsi14": 52.4,
+        "rsi_zone": "neutral",
+        "macd_line": 5.387,
+        "macd_signal": 7.58,
+        "macd_histogram": -2.193,
+        "macd_state": "bearish"
       }
     },
     "ICICIBANK": {
@@ -1717,7 +3043,27 @@
       "futures_trading_symbol": "ICICIBANK FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 1433.4,
+          "strength": 3
+        },
+        {
+          "level": 1443.7,
+          "strength": 3
+        },
+        {
+          "level": 1388.0,
+          "strength": 2
+        },
+        {
+          "level": 1416.05,
+          "strength": 2
+        },
+        {
           "level": 1460.0,
+          "strength": 2
+        },
+        {
+          "level": 1466.4,
           "strength": 2
         },
         {
@@ -1737,7 +3083,23 @@
           "strength": 1
         },
         {
+          "level": 1371.3,
+          "strength": 1
+        },
+        {
+          "level": 1390.4,
+          "strength": 1
+        },
+        {
           "level": 1393.1,
+          "strength": 1
+        },
+        {
+          "level": 1395.3,
+          "strength": 1
+        },
+        {
+          "level": 1400.0,
           "strength": 1
         },
         {
@@ -1749,15 +3111,43 @@
           "strength": 1
         },
         {
-          "level": 1433.0,
+          "level": 1452.4,
           "strength": 1
         },
         {
           "level": 1480.0,
           "strength": 1
+        },
+        {
+          "level": 1494.5,
+          "strength": 1
+        },
+        {
+          "level": 1500.0,
+          "strength": 1
         }
       ],
       "support_zones": [
+        {
+          "level": 1328.7,
+          "strength": 2
+        },
+        {
+          "level": 1342.85,
+          "strength": 2
+        },
+        {
+          "level": 1353.55,
+          "strength": 2
+        },
+        {
+          "level": 1404.15,
+          "strength": 2
+        },
+        {
+          "level": 1415.0,
+          "strength": 2
+        },
         {
           "level": 1187.6,
           "strength": 1
@@ -1791,15 +3181,47 @@
           "strength": 1
         },
         {
+          "level": 1317.4,
+          "strength": 1
+        },
+        {
+          "level": 1336.0,
+          "strength": 1
+        },
+        {
+          "level": 1367.0,
+          "strength": 1
+        },
+        {
           "level": 1375.9,
           "strength": 1
         },
         {
-          "level": 1415.4,
+          "level": 1384.2,
+          "strength": 1
+        },
+        {
+          "level": 1391.7,
+          "strength": 1
+        },
+        {
+          "level": 1408.5,
+          "strength": 1
+        },
+        {
+          "level": 1412.0,
+          "strength": 1
+        },
+        {
+          "level": 1421.1,
+          "strength": 1
+        },
+        {
+          "level": 1426.4,
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 610901.4,
         "09:20": 804610.4,
@@ -1876,6 +3298,17 @@
         "15:15": 10451528.4,
         "15:20": 10451528.4,
         "15:25": 10854762.8
+      },
+      "trend_indicators": {
+        "ema50": 1397.5,
+        "ema200": 1367.25,
+        "ema_trend": "bullish",
+        "rsi14": 48.4,
+        "rsi_zone": "neutral",
+        "macd_line": 6.948,
+        "macd_signal": 14.129,
+        "macd_histogram": -7.181,
+        "macd_state": "bearish"
       }
     },
     "IDFCFIRSTB": {
@@ -1884,11 +3317,39 @@
       "futures_trading_symbol": "IDFCFIRSTB FUT 25 AUG 26",
       "resistance_zones": [
         {
+          "level": 71.65,
+          "strength": 2
+        },
+        {
+          "level": 73.09,
+          "strength": 2
+        },
+        {
+          "level": 82.29,
+          "strength": 2
+        },
+        {
+          "level": 82.7,
+          "strength": 2
+        },
+        {
+          "level": 85.97,
+          "strength": 2
+        },
+        {
           "level": 65.39,
           "strength": 1
         },
         {
           "level": 68.8,
+          "strength": 1
+        },
+        {
+          "level": 69.15,
+          "strength": 1
+        },
+        {
+          "level": 70.37,
           "strength": 1
         },
         {
@@ -1900,11 +3361,23 @@
           "strength": 1
         },
         {
-          "level": 73.08,
+          "level": 72.56,
           "strength": 1
         },
         {
           "level": 73.8,
+          "strength": 1
+        },
+        {
+          "level": 73.99,
+          "strength": 1
+        },
+        {
+          "level": 74.65,
+          "strength": 1
+        },
+        {
+          "level": 78.45,
           "strength": 1
         },
         {
@@ -1920,7 +3393,11 @@
           "strength": 1
         },
         {
-          "level": 82.7,
+          "level": 82.55,
+          "strength": 1
+        },
+        {
+          "level": 85.13,
           "strength": 1
         },
         {
@@ -1932,13 +3409,33 @@
           "strength": 1
         },
         {
+          "level": 86.79,
+          "strength": 1
+        },
+        {
+          "level": 87.0,
+          "strength": 1
+        },
+        {
           "level": 88.76,
           "strength": 1
         }
       ],
       "support_zones": [
         {
-          "level": 78.83,
+          "level": 68.37,
+          "strength": 2
+        },
+        {
+          "level": 71.71,
+          "strength": 2
+        },
+        {
+          "level": 77.48,
+          "strength": 2
+        },
+        {
+          "level": 78.75,
           "strength": 2
         },
         {
@@ -1954,7 +3451,15 @@
           "strength": 1
         },
         {
+          "level": 65.95,
+          "strength": 1
+        },
+        {
           "level": 66.16,
+          "strength": 1
+        },
+        {
+          "level": 66.44,
           "strength": 1
         },
         {
@@ -1966,7 +3471,23 @@
           "strength": 1
         },
         {
-          "level": 68.36,
+          "level": 67.3,
+          "strength": 1
+        },
+        {
+          "level": 67.57,
+          "strength": 1
+        },
+        {
+          "level": 68.56,
+          "strength": 1
+        },
+        {
+          "level": 69.1,
+          "strength": 1
+        },
+        {
+          "level": 69.3,
           "strength": 1
         },
         {
@@ -1974,11 +3495,15 @@
           "strength": 1
         },
         {
-          "level": 76.89,
+          "level": 70.95,
           "strength": 1
         },
         {
-          "level": 77.47,
+          "level": 72.6,
+          "strength": 1
+        },
+        {
+          "level": 76.89,
           "strength": 1
         },
         {
@@ -1986,11 +3511,39 @@
           "strength": 1
         },
         {
+          "level": 78.34,
+          "strength": 1
+        },
+        {
+          "level": 78.88,
+          "strength": 1
+        },
+        {
+          "level": 79.38,
+          "strength": 1
+        },
+        {
+          "level": 79.62,
+          "strength": 1
+        },
+        {
+          "level": 80.01,
+          "strength": 1
+        },
+        {
+          "level": 82.27,
+          "strength": 1
+        },
+        {
+          "level": 83.55,
+          "strength": 1
+        },
+        {
           "level": 83.7,
           "strength": 1
         }
       ],
-      "daily_candle_count": 122,
+      "daily_candle_count": 307,
       "rvol_baseline": {
         "09:15": 523734.6,
         "09:20": 789440.7,
@@ -2067,6 +3620,17 @@
         "15:15": 11507493.0,
         "15:20": 11507493.0,
         "15:25": 11796525.9
+      },
+      "trend_indicators": {
+        "ema50": 80.7,
+        "ema200": 75.67,
+        "ema_trend": "bullish",
+        "rsi14": 61.0,
+        "rsi_zone": "neutral",
+        "macd_line": 1.642,
+        "macd_signal": 1.773,
+        "macd_histogram": -0.131,
+        "macd_state": "bearish"
       }
     }
   }
