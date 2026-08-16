@@ -158,7 +158,7 @@ def load_today_prep():
 # SAME SCORING LOGIC AS THE CONSOLE SCANNER
 # ---------------------------------------------------------------------------
 class SymbolState:
-    def __init__(self, symbol, instrument_key, futures_instrument_key, sr_data, rvol_baseline, trend_indicators=None):
+    def __init__(self, symbol, instrument_key, futures_instrument_key, sr_data, rvol_baseline, trend_indicators=None, prev_close=None):
         self.symbol = symbol
         self.instrument_key = instrument_key
         self.futures_instrument_key = futures_instrument_key
@@ -166,6 +166,7 @@ class SymbolState:
         self.support_zones = sr_data.get("support_zones", [])
         self.rvol_baseline = rvol_baseline
         self.trend_indicators = trend_indicators or {}
+        self.prev_close = prev_close  # previous trading day's close, from prep JSON
 
         self.last_price = None
         self.atp = None
@@ -175,6 +176,14 @@ class SymbolState:
         self.tbq = None
         self.tsq = None
         self.lock = threading.Lock()
+
+    def change_pct(self):
+        """% change of live price vs previous day's close. None if either
+        value isn't available yet."""
+        with self.lock:
+            if self.last_price is None or not self.prev_close:
+                return None
+            return (self.last_price - self.prev_close) / self.prev_close * 100
 
     def update(self, ltp, atp, total_traded_volume, tbq=None, tsq=None):
         with self.lock:
@@ -519,6 +528,7 @@ def scoring_and_ws_thread(access_token, my_generation):
                  "support_zones": info.get("support_zones", [])},
                 info.get("rvol_baseline", {}),
                 info.get("trend_indicators", {}),
+                info.get("prev_close"),
             )
             states[symbol] = state
             price_states_by_key[instrument_key] = state
@@ -705,18 +715,36 @@ if not (MARKET_OPEN <= now_time <= MARKET_CLOSE):
         "may still stream in if connected."
     )
 
-st.subheader("Candidates (sorted by RVOL)")
+st.subheader("Candidates")
 if candidates:
     df = pd.DataFrame(candidates)
-    df = df[["symbol", "rvol", "pattern", "bias", "ltp", "zone_level",
-             "distance_pct", "vwap", "zone_strength", "oi_signal",
-             "aggression", "trend_signal", "score"]]
+    # Signed score: positive for bullish conviction, negative for bearish -
+    # this is a display-only transform (the underlying 'score' column, used
+    # in CSV logs and the console scanner, stays a plain magnitude; nothing
+    # about scoring/thresholds changes, just how it's shown and sorted here).
+    df["signed_score"] = df.apply(
+        lambda r: r["score"] if r["bias"] == "bullish" else -r["score"], axis=1
+    )
 
-    def highlight_bias(row):
-        color = "background-color: #d4f7d4" if row["bias"] == "bullish" else "background-color: #f7d4d4"
+    sort_col1, sort_col2 = st.columns([2, 1])
+    sort_by = sort_col1.radio(
+        "Sort by", ["RVOL", "Score"], horizontal=True, key="candidates_sort_by",
+    )
+    sort_desc = sort_col2.toggle("High to low", value=True, key="candidates_sort_desc")
+
+    sort_field = "rvol" if sort_by == "RVOL" else "signed_score"
+    df = df.sort_values(sort_field, ascending=not sort_desc)
+
+    display_cols = ["symbol", "rvol", "pattern", "bias", "ltp", "zone_level",
+                     "distance_pct", "vwap", "zone_strength", "oi_signal",
+                     "aggression", "trend_signal", "signed_score"]
+    df_display = df[display_cols].rename(columns={"signed_score": "score"})
+
+    def highlight_score(row):
+        color = "background-color: #d4f7d4" if row["score"] >= 0 else "background-color: #f7d4d4"
         return [color] * len(row)
 
-    st.dataframe(df.style.apply(highlight_bias, axis=1), use_container_width=True, hide_index=True)
+    st.dataframe(df_display.style.apply(highlight_score, axis=1), use_container_width=True, hide_index=True)
 else:
     st.info("No candidates flagged yet this cycle.")
 
@@ -725,23 +753,42 @@ if states_snapshot:
     rows = []
     for symbol, state in states_snapshot.items():
         # NOTE: do NOT wrap this in `with state.lock:` - rvol()/oi_direction()/
-        # aggression_label() each acquire state.lock internally already.
-        # Nesting a second acquire on a plain (non-reentrant) threading.Lock
-        # from the same thread deadlocks it forever - this was the actual
-        # bug that made this section render nothing and hang the whole page
-        # (everything up to this point would render, then silently freeze).
+        # aggression_label()/change_pct() each acquire state.lock internally
+        # already. Nesting a second acquire on a plain (non-reentrant)
+        # threading.Lock from the same thread deadlocks it forever - this was
+        # the actual bug that made this section render nothing and hang the
+        # whole page (everything up to this point would render, then
+        # silently freeze).
         rv = state.rvol()
+        chg = state.change_pct()
         rows.append({
             "symbol": symbol,
             "ltp": state.last_price,
+            "prev_close": state.prev_close,
+            "change_pct": round(chg, 2) if chg is not None else None,
             "vwap": state.atp,
             "cum_volume": state.cum_volume,
             "rvol": round(rv, 2) if rv is not None else None,
             "oi_direction": state.oi_direction(),
             "aggression": state.aggression_label(),
         })
-    snap_df = pd.DataFrame(rows).sort_values("rvol", ascending=False, na_position="last")
-    st.dataframe(snap_df, use_container_width=True, hide_index=True)
+
+    snap_sort_col1, snap_sort_col2 = st.columns([2, 1])
+    snap_sort_by = snap_sort_col1.radio(
+        "Sort by", ["Symbol", "RVOL", "Change %"], horizontal=True, key="snapshot_sort_by",
+    )
+    snap_sort_desc = snap_sort_col2.toggle("High to low", value=True, key="snapshot_sort_desc")
+
+    snap_sort_field = {"Symbol": "symbol", "RVOL": "rvol", "Change %": "change_pct"}[snap_sort_by]
+    snap_df = pd.DataFrame(rows).sort_values(snap_sort_field, ascending=not snap_sort_desc, na_position="last")
+
+    def highlight_change(row):
+        if row["change_pct"] is None:
+            return [""] * len(row)
+        color = "background-color: #d4f7d4" if row["change_pct"] >= 0 else "background-color: #f7d4d4"
+        return [color] * len(row)
+
+    st.dataframe(snap_df.style.apply(highlight_change, axis=1), use_container_width=True, hide_index=True)
 else:
     st.info("Waiting for prep data / first ticks...")
 
