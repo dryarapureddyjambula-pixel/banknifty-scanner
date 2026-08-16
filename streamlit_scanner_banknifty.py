@@ -763,16 +763,46 @@ if candidates:
 else:
     st.info("No candidates flagged yet this cycle.")
 
-# NOTE: the "All F&O stocks - live snapshot" table that used to live here
-# has been removed. Despite extensive testing (isolated rvol() timing
-# proven instant, widget placement fixed, styling removed, row count
-# limited to 30, loop iteration limited to 30) it still failed to render
-# reliably once the universe scaled from 12 stocks to ~200 - the root
-# cause was never pinned down, and this table was a secondary "browse
-# everything" convenience, not core functionality. The Candidates table
-# above (which works correctly) and the console scanner cover what
-# actually matters - use eod_performance_fno.py / eod_performance_cash_
-# market.py for a full end-of-day view across the whole universe instead.
+# NOTE: this table was removed once earlier today after extensive testing
+# (row count, loop count, styling, widget placement) failed to explain a
+# render failure at ~200 stocks. Re-added here for a genuinely fresh test
+# after a full PC restart, since accumulated session/process state from
+# many rapid test cycles today (rather than scale itself) may have been
+# the real cause - worth confirming with a clean environment before
+# concluding it's a hard scale limitation.
+st.subheader(f"All {len(states_snapshot)} F&O stocks - live snapshot")
+
+snap_sort_col1, snap_sort_col2 = st.columns([2, 1])
+snap_sort_by = snap_sort_col1.radio(
+    "Sort by", ["Symbol", "RVOL", "Change %"], horizontal=True, key="snapshot_sort_by",
+)
+snap_sort_desc = snap_sort_col2.toggle("High to low", value=True, key="snapshot_sort_desc")
+
+if states_snapshot:
+    rows = []
+    for symbol, state in states_snapshot.items():
+        # NOTE: do NOT wrap this in `with state.lock:` - rvol()/oi_direction()/
+        # aggression_label()/change_pct() each acquire state.lock internally
+        # already. Nesting a second acquire on a plain (non-reentrant)
+        # threading.Lock from the same thread deadlocks it forever.
+        rv = state.rvol()
+        chg = state.change_pct()
+        rows.append({
+            "symbol": symbol,
+            "ltp": state.last_price,
+            "prev_close": state.prev_close,
+            "change_pct": round(chg, 2) if chg is not None else None,
+            "vwap": state.atp,
+            "rvol": round(rv, 2) if rv is not None else None,
+            "oi_direction": state.oi_direction(),
+            "aggression": state.aggression_label(),
+        })
+
+    snap_sort_field = {"Symbol": "symbol", "RVOL": "rvol", "Change %": "change_pct"}[snap_sort_by]
+    snap_df = pd.DataFrame(rows).sort_values(snap_sort_field, ascending=not snap_sort_desc, na_position="last")
+    st.dataframe(snap_df, use_container_width=True, hide_index=True)
+else:
+    st.info("Waiting for prep data / first ticks...")
 
 st.caption(
     f"Auto-refreshing every {UI_REFRESH_SEC}s. Logs written continuously to "
