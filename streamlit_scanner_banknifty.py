@@ -631,8 +631,8 @@ def connect_with_token(access_token):
 # ---------------------------------------------------------------------------
 # STREAMLIT UI
 # ---------------------------------------------------------------------------
-st.set_page_config(page_title="Bank Nifty Live Scanner", layout="wide")
-st.title("Bank Nifty Live Scanner")
+st.set_page_config(page_title="F&O Live Scanner", layout="wide")
+st.title("F&O Live Scanner")
 
 if pb is None:
     st.error(
@@ -699,6 +699,11 @@ col1.metric("Connection status", status)
 col2.metric("Last scored at", last_scored_at or "-")
 col3.metric("Candidates now", len(candidates))
 
+with _app_lock:
+    _debug_generation = _app["generation"]
+    _debug_started = _app["started"]
+    _debug_current_token = _app["current_token"]
+
 with st.expander("Debug info (click if something looks stuck)"):
     st.write("Raw status:", status)
     st.write("Symbols loaded in states:", len(states_snapshot))
@@ -707,6 +712,9 @@ with st.expander("Debug info (click if something looks stuck)"):
     st.write("Prep files found:", glob.glob(os.path.join(PREP_DIR, "banknifty_prep_*.json")))
     st.write("Config file exists:", os.path.exists(CONFIG_FILE))
     st.write("Protobuf module loaded:", pb is not None)
+    st.write("**Generation:**", _debug_generation, "(if this keeps increasing across page refreshes, it's reconnecting repeatedly)")
+    st.write("**Started:**", _debug_started)
+    st.write("**Current token (masked):**", (_debug_current_token[:6] + "..." if _debug_current_token else None))
 
 if error:
     st.error(f"Background thread error: {error}")
@@ -720,6 +728,16 @@ if not (MARKET_OPEN <= now_time <= MARKET_CLOSE):
     )
 
 st.subheader("Candidates")
+
+# Sort controls always render, unconditionally - see the identical note in
+# the "All X instruments" section below for why (conditional widget
+# creation is a known source of subtle Streamlit rendering bugs).
+sort_col1, sort_col2 = st.columns([2, 1])
+sort_by = sort_col1.radio(
+    "Sort by", ["RVOL", "Score"], horizontal=True, key="candidates_sort_by",
+)
+sort_desc = sort_col2.toggle("High to low", value=True, key="candidates_sort_desc")
+
 if candidates:
     df = pd.DataFrame(candidates)
     # Signed score: positive for bullish conviction, negative for bearish -
@@ -730,12 +748,6 @@ if candidates:
         lambda r: r["score"] if r["bias"] == "bullish" else -r["score"], axis=1
     )
 
-    sort_col1, sort_col2 = st.columns([2, 1])
-    sort_by = sort_col1.radio(
-        "Sort by", ["RVOL", "Score"], horizontal=True, key="candidates_sort_by",
-    )
-    sort_desc = sort_col2.toggle("High to low", value=True, key="candidates_sort_desc")
-
     sort_field = "rvol" if sort_by == "RVOL" else "signed_score"
     df = df.sort_values(sort_field, ascending=not sort_desc)
 
@@ -744,57 +756,23 @@ if candidates:
                      "aggression", "trend_signal", "signed_score"]
     df_display = df[display_cols].rename(columns={"signed_score": "score"})
 
-    def highlight_score(row):
-        color = "background-color: #d4f7d4" if row["score"] >= 0 else "background-color: #f7d4d4"
-        return [color] * len(row)
-
-    st.dataframe(df_display.style.apply(highlight_score, axis=1), use_container_width=True, hide_index=True)
+    # Same fix as the snapshot table below - .style.apply() row-by-row is
+    # too slow at scale across a 208-stock universe. Plain st.dataframe()
+    # stays fast regardless of how many candidates get flagged at once.
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
 else:
     st.info("No candidates flagged yet this cycle.")
 
-st.subheader("All 12 stocks - live snapshot")
-if states_snapshot:
-    rows = []
-    for symbol, state in states_snapshot.items():
-        # NOTE: do NOT wrap this in `with state.lock:` - rvol()/oi_direction()/
-        # aggression_label()/change_pct() each acquire state.lock internally
-        # already. Nesting a second acquire on a plain (non-reentrant)
-        # threading.Lock from the same thread deadlocks it forever - this was
-        # the actual bug that made this section render nothing and hang the
-        # whole page (everything up to this point would render, then
-        # silently freeze).
-        rv = state.rvol()
-        chg = state.change_pct()
-        rows.append({
-            "symbol": symbol,
-            "ltp": state.last_price,
-            "prev_close": state.prev_close,
-            "change_pct": round(chg, 2) if chg is not None else None,
-            "vwap": state.atp,
-            "cum_volume": state.cum_volume,
-            "rvol": round(rv, 2) if rv is not None else None,
-            "oi_direction": state.oi_direction(),
-            "aggression": state.aggression_label(),
-        })
-
-    snap_sort_col1, snap_sort_col2 = st.columns([2, 1])
-    snap_sort_by = snap_sort_col1.radio(
-        "Sort by", ["Symbol", "RVOL", "Change %"], horizontal=True, key="snapshot_sort_by",
-    )
-    snap_sort_desc = snap_sort_col2.toggle("High to low", value=True, key="snapshot_sort_desc")
-
-    snap_sort_field = {"Symbol": "symbol", "RVOL": "rvol", "Change %": "change_pct"}[snap_sort_by]
-    snap_df = pd.DataFrame(rows).sort_values(snap_sort_field, ascending=not snap_sort_desc, na_position="last")
-
-    def highlight_change(row):
-        if row["change_pct"] is None:
-            return [""] * len(row)
-        color = "background-color: #d4f7d4" if row["change_pct"] >= 0 else "background-color: #f7d4d4"
-        return [color] * len(row)
-
-    st.dataframe(snap_df.style.apply(highlight_change, axis=1), use_container_width=True, hide_index=True)
-else:
-    st.info("Waiting for prep data / first ticks...")
+# NOTE: the "All F&O stocks - live snapshot" table that used to live here
+# has been removed. Despite extensive testing (isolated rvol() timing
+# proven instant, widget placement fixed, styling removed, row count
+# limited to 30, loop iteration limited to 30) it still failed to render
+# reliably once the universe scaled from 12 stocks to ~200 - the root
+# cause was never pinned down, and this table was a secondary "browse
+# everything" convenience, not core functionality. The Candidates table
+# above (which works correctly) and the console scanner cover what
+# actually matters - use eod_performance_fno.py / eod_performance_cash_
+# market.py for a full end-of-day view across the whole universe instead.
 
 st.caption(
     f"Auto-refreshing every {UI_REFRESH_SEC}s. Logs written continuously to "

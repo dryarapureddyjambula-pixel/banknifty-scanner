@@ -1,37 +1,50 @@
 """
-Morning Prep Script - Bank Nifty Stocks
-=========================================
+Morning Prep Script - Full F&O Stock Universe
+=================================================
 Run this once before market open (or right after 9:15 AM).
 
 What it does:
-1. Pulls the instrument master fresh and filters for the 12 Bank Nifty
-   constituent stocks (NSE_EQ).
+1. Pulls the instrument master fresh and dynamically discovers the FULL
+   F&O-eligible stock universe (~190 stocks) - every stock with an active
+   futures contract on NSE, not a fixed hardcoded list.
 2. For each stock, pulls historical DAILY candles, detects swing
    highs/lows, and clusters them into Support/Resistance zones. The same
    daily candles are also used to compute EMA50/EMA200 trend state,
    RSI(14), and MACD(12,26,9) - a slower "trend regime" filter the live
    scanner combines with its faster intraday signals.
 3. For each stock, pulls the last 10 trading days of 5-min INTRADAY
-   candles and builds a cumulative-volume-by-time-of-day reference
-   curve, used later by the live script to compute RVOL (relative volume).
+   candles (from the FUTURES contract, not cash market) and builds a
+   cumulative-volume-by-time-of-day reference curve, used later by the
+   live script to compute RVOL (relative volume).
 4. Saves everything into a single combined JSON file:
        banknifty_prep_<YYYY-MM-DD>.json
+   (filename kept as-is for compatibility with the scanner scripts and
+   GitHub Actions workflow, even though it now covers the full F&O
+   universe rather than just Bank Nifty stocks.)
+
+Given ~190 stocks (up from an earlier 12-stock version), this runs each
+stock's fetches CONCURRENTLY with a rate limiter, same proven pattern as
+eod_performance_fno.py / eod_performance_cash_market.py, to keep total
+runtime practical (a few minutes rather than tens of minutes).
 
 Notes specific to Upstox API v3 (from prior sessions):
 - Historical candle endpoint URL order is to_date THEN from_date.
 - Candle row = [timestamp, open, high, low, close, volume, oi] (7 elements).
 - Always sort candles by timestamp explicitly, never assume order.
 - Instrument master refreshes daily at 6 AM from Upstox's assets URL.
-- Rate limit: 25 req/sec. We stay well under that with sequential calls
-  for just 12 symbols, so no special concurrency handling is needed here.
+- Rate limit: 25 req/sec - stays under 18/sec via a shared rate limiter
+  across a small worker pool, matching the pattern used elsewhere in
+  this project.
 """
 
 import os
 import json
 import gzip
-import shutil
+import time
+import threading
 import requests
 from datetime import datetime, timedelta
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # ---------------------------------------------------------------------------
 # CONFIG
@@ -42,28 +55,34 @@ OUTPUT_DIR = os.path.join(SCRIPT_DIR, "prep_output")
 
 INSTRUMENT_MASTER_URL = "https://assets.upstox.com/market-quote/instruments/exchange/NSE.json.gz"
 
-# The 12 Bank Nifty constituent stocks (trading symbols as listed on NSE).
-# NOTE: Index weights/constituents can change periodically - verify against
-# the latest NSE Bank Nifty factsheet before trusting this list blindly.
-BANKNIFTY_STOCKS = [
-    "HDFCBANK",
-    "ICICIBANK",
-    "SBIN",
-    "KOTAKBANK",
-    "AXISBANK",
-    "INDUSINDBK",
-    "BANKBARODA",
-    "PNB",
-    "AUBANK",
-    "FEDERALBNK",
-    "IDFCFIRSTB",
-    "CANBK",
-]
+MAX_WORKERS = 4              # concurrent stocks being processed at once
+MAX_REQUESTS_PER_SEC = 18    # shared across all workers, stays under Upstox's 25/sec limit
 
 DAILY_CANDLE_LOOKBACK_DAYS = 450   # ~15 months - S/R needs 6mo, but EMA200 needs
                                     # 200+ trading days to seed properly, so we
                                     # extend the same fetch to cover both.
 INTRADAY_LOOKBACK_DAYS = 10        # for RVOL baseline curve
+
+
+class RateLimiter:
+    """Token-bucket style limiter shared across worker threads, so TOTAL
+    request rate (not per-thread rate) stays under the API limit. Same
+    pattern used in eod_performance_cash_market.py."""
+    def __init__(self, max_per_sec):
+        self.min_interval = 1.0 / max_per_sec
+        self.lock = threading.Lock()
+        self.last_call = 0.0
+
+    def wait(self):
+        with self.lock:
+            now = time.monotonic()
+            elapsed = now - self.last_call
+            if elapsed < self.min_interval:
+                time.sleep(self.min_interval - elapsed)
+            self.last_call = time.monotonic()
+
+
+rate_limiter = RateLimiter(MAX_REQUESTS_PER_SEC)
 INTRADAY_INTERVAL = "5minute"
 SWING_WINDOW = 3                   # bars on each side to confirm a swing point
 ZONE_CLUSTER_PCT = 0.15            # cluster S/R levels within 0.15% of each other
@@ -110,12 +129,16 @@ def get_headers(access_token):
 
 
 # ---------------------------------------------------------------------------
-# STEP 1: Instrument master -> instrument keys for the 12 stocks
+# STEP 1: Instrument master -> full F&O stock universe instrument keys
 # ---------------------------------------------------------------------------
 def fetch_instrument_keys():
-    """Downloads the NSE instrument master fresh and maps trading symbol ->
-    instrument_key for equity (NSE_EQ) segment, plus resolves each stock's
-    current-month futures instrument_key (NSE_FO) for OI tracking."""
+    """Downloads the NSE instrument master fresh and dynamically discovers
+    the full F&O-eligible stock universe: every NSE_FO futures contract's
+    underlying stock, matched to its NSE_EQ instrument_key (for cash-market
+    S/R zones + trend indicators) and its own nearest-expiry futures
+    instrument_key (for live LTP/RVOL/OI). This replaces an earlier fixed
+    12-stock list - the universe now automatically reflects whichever
+    stocks currently have active F&O contracts."""
     print("Fetching instrument master...")
     resp = requests.get(INSTRUMENT_MASTER_URL, timeout=30)
     resp.raise_for_status()
@@ -123,48 +146,49 @@ def fetch_instrument_keys():
     raw = gzip.decompress(resp.content)
     instruments = json.loads(raw)
 
-    symbol_map = {}       # trading_symbol -> {instrument_key, name}
+    fno_names = set()
+    equity_by_name = {}   # name -> (trading_symbol, instrument_key)
     fut_candidates = {}   # name -> list of (expiry, instrument_key, trading_symbol)
-    wanted = set(BANKNIFTY_STOCKS)
 
     for inst in instruments:
         segment = inst.get("segment")
-        if segment == "NSE_EQ":
-            trading_symbol = inst.get("trading_symbol")
-            if trading_symbol in wanted:
-                symbol_map[trading_symbol] = {
-                    "instrument_key": inst.get("instrument_key"),
-                    "name": inst.get("name"),
-                }
-        elif segment == "NSE_FO" and inst.get("instrument_type") == "FUT":
+        if segment == "NSE_FO" and inst.get("instrument_type") == "FUT":
             name = inst.get("name")
             expiry = inst.get("expiry")
-            if name and expiry:
-                fut_candidates.setdefault(name, []).append(
-                    (expiry, inst.get("instrument_key"), inst.get("trading_symbol"))
-                )
+            if name:
+                fno_names.add(name)
+                if expiry:
+                    fut_candidates.setdefault(name, []).append(
+                        (expiry, inst.get("instrument_key"), inst.get("trading_symbol"))
+                    )
+        elif segment == "NSE_EQ":
+            name = inst.get("name")
+            if name:
+                equity_by_name[name] = (inst.get("trading_symbol"), inst.get("instrument_key"))
 
-    missing = wanted - set(symbol_map.keys())
-    if missing:
-        print(f"WARNING: could not find instrument keys for: {missing}")
+    symbol_map = {}
+    for name in fno_names:
+        if name not in equity_by_name:
+            continue  # F&O contract on something without a matching cash-market stock (e.g. an index)
+        trading_symbol, instrument_key = equity_by_name[name]
+        info = {"instrument_key": instrument_key, "name": name}
 
-    # Attach nearest-expiry futures instrument key to each resolved stock
-    for symbol, info in symbol_map.items():
-        name = info.get("name")
         candidates = fut_candidates.get(name, [])
-        if not candidates:
+        if candidates:
+            candidates.sort(key=lambda c: c[0])  # soonest expiry first (current month)
+            nearest = candidates[0]
+            info["futures_instrument_key"] = nearest[1]
+            info["futures_trading_symbol"] = nearest[2]
+        else:
             info["futures_instrument_key"] = None
             info["futures_trading_symbol"] = None
-            continue
-        candidates.sort(key=lambda c: c[0])  # soonest expiry first (current month)
-        nearest = candidates[0]
-        info["futures_instrument_key"] = nearest[1]
-        info["futures_trading_symbol"] = nearest[2]
 
-    print(f"Resolved {len(symbol_map)}/{len(wanted)} instrument keys.")
+        symbol_map[trading_symbol] = info
+
     no_fut = [s for s, i in symbol_map.items() if not i.get("futures_instrument_key")]
+    print(f"Resolved {len(symbol_map)} F&O-eligible stocks ({len(no_fut)} without a matched futures contract).")
     if no_fut:
-        print(f"WARNING: no futures contract matched for: {no_fut}")
+        print(f"  No futures contract for: {no_fut[:10]}{' ...' if len(no_fut) > 10 else ''}")
 
     return symbol_map
 
@@ -181,6 +205,7 @@ def fetch_daily_candles(instrument_key, access_token, days_back=DAILY_CANDLE_LOO
         f"https://api.upstox.com/v3/historical-candle/"
         f"{instrument_key}/days/1/{to_date}/{from_date}"
     )
+    rate_limiter.wait()
     resp = requests.get(url, headers=get_headers(access_token), timeout=20)
     resp.raise_for_status()
     data = resp.json()
@@ -421,6 +446,7 @@ def fetch_intraday_candles(instrument_key, access_token, days_back):
         f"https://api.upstox.com/v3/historical-candle/"
         f"{instrument_key}/minutes/5/{to_date}/{from_date}"
     )
+    rate_limiter.wait()
     resp = requests.get(url, headers=get_headers(access_token), timeout=20)
     resp.raise_for_status()
     data = resp.json()
@@ -480,6 +506,96 @@ def build_rvol_baseline(instrument_key, access_token, days_back=INTRADAY_LOOKBAC
 # ---------------------------------------------------------------------------
 # MAIN
 # ---------------------------------------------------------------------------
+def process_symbol(symbol, info, access_token):
+    """Runs the full prep pipeline (S/R zones, trend indicators, RVOL
+    baseline, prev_close) for one instrument. Shared by both the 12 Bank
+    Nifty stocks and the two index futures (NIFTY, BANKNIFTY), since the
+    shape of `info` (instrument_key + futures_instrument_key) is identical
+    for both. Returns the dict to store under result["stocks"][symbol]."""
+    instrument_key = info["instrument_key"]
+    print(f"\nProcessing {symbol} ({instrument_key})...")
+
+    try:
+        daily_candles = fetch_daily_candles(instrument_key, access_token)
+        sr_data = compute_sr_zones(daily_candles)
+        print(f"  Resistance zones: {len(sr_data['resistance_zones'])}, "
+              f"Support zones: {len(sr_data['support_zones'])}")
+    except Exception as e:
+        print(f"  ERROR computing S/R zones: {e}")
+        daily_candles = []
+        sr_data = {"resistance_zones": [], "support_zones": [], "candle_count": 0}
+
+    # Previous day's close on the CASH/INDEX market (fallback + reference
+    # alongside the cash/index-based S/R zones and trend indicators).
+    cash_prev_close = daily_candles[-1][4] if daily_candles else None
+
+    # Previous day's close on the FUTURES contract specifically - since live
+    # LTP comes from futures, change% needs to compare against the SAME
+    # instrument's prior close, not cash/index's, to avoid a basis skew.
+    futures_key = info.get("futures_instrument_key")
+    futures_prev_close = None
+    if futures_key:
+        try:
+            futures_candles = fetch_daily_candles(futures_key, access_token, days_back=10)
+            if futures_candles:
+                futures_prev_close = futures_candles[-1][4]
+        except Exception as e:
+            print(f"  Could not fetch futures prev close: {e}")
+
+    prev_close = futures_prev_close if futures_prev_close is not None else cash_prev_close
+    prev_close_source = "futures" if futures_prev_close is not None else "cash/index (fallback)"
+    print(f"  Previous close: {prev_close} ({prev_close_source})")
+
+    try:
+        trend_indicators = compute_trend_indicators(daily_candles)
+        print(f"  EMA trend: {trend_indicators['ema_trend']}, "
+              f"RSI14: {trend_indicators['rsi14']} ({trend_indicators['rsi_zone']}), "
+              f"MACD: {trend_indicators['macd_state']}")
+    except Exception as e:
+        print(f"  ERROR computing trend indicators: {e}")
+        trend_indicators = {
+            "ema50": None, "ema200": None, "ema_trend": None,
+            "rsi14": None, "rsi_zone": None,
+            "macd_line": None, "macd_signal": None, "macd_histogram": None, "macd_state": None,
+        }
+
+    # RVOL baseline sourced from FUTURES, not cash/index - futures activity
+    # is a more meaningful signal for leveraged intraday moves. Falls back
+    # to cash/index if the futures contract is too new to have enough
+    # intraday history yet, or if no futures contract was resolved at all.
+    try:
+        if futures_key:
+            rvol_baseline = build_rvol_baseline(futures_key, access_token)
+            if len(rvol_baseline) < 20:  # too sparse to be a useful baseline
+                print(f"  Futures RVOL baseline too sparse ({len(rvol_baseline)} buckets, "
+                      f"likely a recently-rolled contract) - falling back to cash/index.")
+                rvol_baseline = build_rvol_baseline(instrument_key, access_token)
+            else:
+                print(f"  RVOL baseline buckets (from futures): {len(rvol_baseline)}")
+        else:
+            print("  No futures contract resolved - RVOL baseline falling back to cash/index.")
+            rvol_baseline = build_rvol_baseline(instrument_key, access_token)
+    except Exception as e:
+        print(f"  ERROR building RVOL baseline: {e}")
+        rvol_baseline = {}
+
+    print(f"  Futures contract: {info.get('futures_trading_symbol')} "
+          f"({info.get('futures_instrument_key')})")
+
+    return {
+        "instrument_key": instrument_key,
+        "futures_instrument_key": info.get("futures_instrument_key"),
+        "futures_trading_symbol": info.get("futures_trading_symbol"),
+        "resistance_zones": sr_data["resistance_zones"],
+        "support_zones": sr_data["support_zones"],
+        "daily_candle_count": sr_data["candle_count"],
+        "rvol_baseline": rvol_baseline,
+        "trend_indicators": trend_indicators,
+        "prev_close": prev_close,
+        "cash_prev_close": cash_prev_close,
+    }
+
+
 def main():
     config = load_config()
     access_token = get_access_token(config)
@@ -493,94 +609,29 @@ def main():
         "stocks": {},
     }
 
-    for symbol, info in symbol_map.items():
-        instrument_key = info["instrument_key"]
-        print(f"\nProcessing {symbol} ({instrument_key})...")
+    print(f"\nProcessing {len(symbol_map)} stocks with {MAX_WORKERS} workers "
+          f"(rate-limited to {MAX_REQUESTS_PER_SEC}/sec)...")
+    start_time = time.time()
 
-        try:
-            daily_candles = fetch_daily_candles(instrument_key, access_token)
-            sr_data = compute_sr_zones(daily_candles)
-            print(f"  Resistance zones: {len(sr_data['resistance_zones'])}, "
-                  f"Support zones: {len(sr_data['support_zones'])}")
-        except Exception as e:
-            print(f"  ERROR computing S/R zones: {e}")
-            daily_candles = []
-            sr_data = {"resistance_zones": [], "support_zones": [], "candle_count": 0}
-
-        # Previous day's close on the CASH market (used as a fallback, and
-        # for reference alongside cash-based S/R zones/trend indicators).
-        cash_prev_close = daily_candles[-1][4] if daily_candles else None
-
-        # Previous day's close on the FUTURES contract specifically - since
-        # live LTP now comes from futures (see note below on why), the
-        # change% comparison needs to be against the SAME instrument's prior
-        # close, not cash market's, to avoid a skew from the futures
-        # premium/discount to cash. Only a few days of history needed here.
-        futures_key = info.get("futures_instrument_key")
-        futures_prev_close = None
-        if futures_key:
-            try:
-                futures_candles = fetch_daily_candles(futures_key, access_token, days_back=10)
-                if futures_candles:
-                    futures_prev_close = futures_candles[-1][4]
-            except Exception as e:
-                print(f"  Could not fetch futures prev close: {e}")
-
-        prev_close = futures_prev_close if futures_prev_close is not None else cash_prev_close
-        prev_close_source = "futures" if futures_prev_close is not None else "cash (fallback)"
-        print(f"  Previous close: {prev_close} ({prev_close_source})")
-
-        try:
-            trend_indicators = compute_trend_indicators(daily_candles)
-            print(f"  EMA trend: {trend_indicators['ema_trend']}, "
-                  f"RSI14: {trend_indicators['rsi14']} ({trend_indicators['rsi_zone']}), "
-                  f"MACD: {trend_indicators['macd_state']}")
-        except Exception as e:
-            print(f"  ERROR computing trend indicators: {e}")
-            trend_indicators = {
-                "ema50": None, "ema200": None, "ema_trend": None,
-                "rsi14": None, "rsi_zone": None,
-                "macd_line": None, "macd_signal": None, "macd_histogram": None, "macd_state": None,
-            }
-
-        # RVOL baseline sourced from FUTURES, not cash market - futures
-        # volume/activity is a more meaningful signal for leveraged intraday
-        # moves than cash market volume, which includes a lot of delivery-
-        # based noise. Falls back to cash market if the futures contract is
-        # too new to have enough intraday history yet (e.g. right after a
-        # monthly rollover), or if no futures contract was resolved at all.
-        futures_key = info.get("futures_instrument_key")
-        try:
-            if futures_key:
-                rvol_baseline = build_rvol_baseline(futures_key, access_token)
-                if len(rvol_baseline) < 20:  # too sparse to be a useful baseline
-                    print(f"  Futures RVOL baseline too sparse ({len(rvol_baseline)} buckets, "
-                          f"likely a recently-rolled contract) - falling back to cash market.")
-                    rvol_baseline = build_rvol_baseline(instrument_key, access_token)
-                else:
-                    print(f"  RVOL baseline buckets (from futures): {len(rvol_baseline)}")
-            else:
-                print("  No futures contract resolved - RVOL baseline falling back to cash market.")
-                rvol_baseline = build_rvol_baseline(instrument_key, access_token)
-        except Exception as e:
-            print(f"  ERROR building RVOL baseline: {e}")
-            rvol_baseline = {}
-
-        print(f"  Futures contract: {info.get('futures_trading_symbol')} "
-              f"({info.get('futures_instrument_key')})")
-
-        result["stocks"][symbol] = {
-            "instrument_key": instrument_key,
-            "futures_instrument_key": info.get("futures_instrument_key"),
-            "futures_trading_symbol": info.get("futures_trading_symbol"),
-            "resistance_zones": sr_data["resistance_zones"],
-            "support_zones": sr_data["support_zones"],
-            "daily_candle_count": sr_data["candle_count"],
-            "rvol_baseline": rvol_baseline,
-            "trend_indicators": trend_indicators,
-            "prev_close": prev_close,
-            "cash_prev_close": cash_prev_close,  # kept for reference/comparison
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+        futures = {
+            executor.submit(process_symbol, symbol, info, access_token): symbol
+            for symbol, info in symbol_map.items()
         }
+        done_count = 0
+        for future in as_completed(futures):
+            symbol = futures[future]
+            done_count += 1
+            try:
+                result["stocks"][symbol] = future.result()
+            except Exception as e:
+                print(f"  ERROR processing {symbol}: {e}")
+            if done_count % 20 == 0:
+                elapsed = round(time.time() - start_time)
+                print(f"  ...{done_count}/{len(symbol_map)} done ({elapsed}s elapsed)")
+
+    elapsed = round(time.time() - start_time)
+    print(f"\nProcessed {len(result['stocks'])}/{len(symbol_map)} stocks successfully in {elapsed}s.")
 
     out_filename = f"banknifty_prep_{datetime.now().strftime('%Y-%m-%d')}.json"
     out_path = os.path.join(OUTPUT_DIR, out_filename)
