@@ -163,9 +163,9 @@ def fetch_instrument_keys():
 # ---------------------------------------------------------------------------
 # STEP 2: Historical daily candles -> swing S/R zones
 # ---------------------------------------------------------------------------
-def fetch_daily_candles(instrument_key, access_token):
+def fetch_daily_candles(instrument_key, access_token, days_back=DAILY_CANDLE_LOOKBACK_DAYS):
     to_date = datetime.now().strftime("%Y-%m-%d")
-    from_date = (datetime.now() - timedelta(days=DAILY_CANDLE_LOOKBACK_DAYS)).strftime("%Y-%m-%d")
+    from_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
 
     # v3 historical candle endpoint - URL order is to_date THEN from_date
     url = (
@@ -498,12 +498,28 @@ def main():
             daily_candles = []
             sr_data = {"resistance_zones": [], "support_zones": [], "candle_count": 0}
 
-        # Previous day's close - simply the most recent candle in the same
-        # daily series already fetched above (this script runs before/at
-        # market open, so the last candle is yesterday's completed session,
-        # not today's - no extra API call needed).
-        prev_close = daily_candles[-1][4] if daily_candles else None
-        print(f"  Previous close: {prev_close}")
+        # Previous day's close on the CASH market (used as a fallback, and
+        # for reference alongside cash-based S/R zones/trend indicators).
+        cash_prev_close = daily_candles[-1][4] if daily_candles else None
+
+        # Previous day's close on the FUTURES contract specifically - since
+        # live LTP now comes from futures (see note below on why), the
+        # change% comparison needs to be against the SAME instrument's prior
+        # close, not cash market's, to avoid a skew from the futures
+        # premium/discount to cash. Only a few days of history needed here.
+        futures_key = info.get("futures_instrument_key")
+        futures_prev_close = None
+        if futures_key:
+            try:
+                futures_candles = fetch_daily_candles(futures_key, access_token, days_back=10)
+                if futures_candles:
+                    futures_prev_close = futures_candles[-1][4]
+            except Exception as e:
+                print(f"  Could not fetch futures prev close: {e}")
+
+        prev_close = futures_prev_close if futures_prev_close is not None else cash_prev_close
+        prev_close_source = "futures" if futures_prev_close is not None else "cash (fallback)"
+        print(f"  Previous close: {prev_close} ({prev_close_source})")
 
         try:
             trend_indicators = compute_trend_indicators(daily_candles)
@@ -518,9 +534,25 @@ def main():
                 "macd_line": None, "macd_signal": None, "macd_histogram": None, "macd_state": None,
             }
 
+        # RVOL baseline sourced from FUTURES, not cash market - futures
+        # volume/activity is a more meaningful signal for leveraged intraday
+        # moves than cash market volume, which includes a lot of delivery-
+        # based noise. Falls back to cash market if the futures contract is
+        # too new to have enough intraday history yet (e.g. right after a
+        # monthly rollover), or if no futures contract was resolved at all.
+        futures_key = info.get("futures_instrument_key")
         try:
-            rvol_baseline = build_rvol_baseline(instrument_key, access_token)
-            print(f"  RVOL baseline buckets: {len(rvol_baseline)}")
+            if futures_key:
+                rvol_baseline = build_rvol_baseline(futures_key, access_token)
+                if len(rvol_baseline) < 20:  # too sparse to be a useful baseline
+                    print(f"  Futures RVOL baseline too sparse ({len(rvol_baseline)} buckets, "
+                          f"likely a recently-rolled contract) - falling back to cash market.")
+                    rvol_baseline = build_rvol_baseline(instrument_key, access_token)
+                else:
+                    print(f"  RVOL baseline buckets (from futures): {len(rvol_baseline)}")
+            else:
+                print("  No futures contract resolved - RVOL baseline falling back to cash market.")
+                rvol_baseline = build_rvol_baseline(instrument_key, access_token)
         except Exception as e:
             print(f"  ERROR building RVOL baseline: {e}")
             rvol_baseline = {}
@@ -538,6 +570,7 @@ def main():
             "rvol_baseline": rvol_baseline,
             "trend_indicators": trend_indicators,
             "prev_close": prev_close,
+            "cash_prev_close": cash_prev_close,  # kept for reference/comparison
         }
 
     out_filename = f"banknifty_prep_{datetime.now().strftime('%Y-%m-%d')}.json"

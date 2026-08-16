@@ -444,7 +444,13 @@ def build_subscribe_message(instrument_keys):
     })
 
 
-def make_on_message(price_states_by_key, oi_states_by_key):
+def make_on_message(states_by_key):
+    """states_by_key: instrument_key (futures, per-stock) -> SymbolState.
+    Live LTP/VWAP/volume/depth AND OI all come from the same futures feed -
+    futures volume/OI better reflect real leveraged intraday activity than
+    cash market volume. S/R zones and EMA/RSI/MACD trend indicators still
+    come from cash market DAILY candles (a futures contract only exists for
+    ~1 month, can't support a 200-day EMA)."""
     def on_message(ws, message):
         if pb is None:
             return
@@ -454,26 +460,21 @@ def make_on_message(price_states_by_key, oi_states_by_key):
         except Exception:
             return
         for instrument_key, feed in feed_response.feeds.items():
-            state = price_states_by_key.get(instrument_key)
-            if state is not None:
-                try:
-                    full_feed = feed.fullFeed.marketFF
-                    ltp = full_feed.ltpc.ltp
-                    atp = full_feed.atp if hasattr(full_feed, "atp") else None
-                    total_volume = int(full_feed.vtt) if hasattr(full_feed, "vtt") and full_feed.vtt else 0
-                    tbq = full_feed.tbq if hasattr(full_feed, "tbq") else None
-                    tsq = full_feed.tsq if hasattr(full_feed, "tsq") else None
-                    state.update(ltp, atp, total_volume, tbq, tsq)
-                except Exception:
-                    pass
-            oi_state = oi_states_by_key.get(instrument_key)
-            if oi_state is not None:
-                try:
-                    full_feed = feed.fullFeed.marketFF
-                    oi = full_feed.oi if hasattr(full_feed, "oi") else None
-                    oi_state.update_oi(oi)
-                except Exception:
-                    pass
+            state = states_by_key.get(instrument_key)
+            if state is None:
+                continue
+            try:
+                full_feed = feed.fullFeed.marketFF
+                ltp = full_feed.ltpc.ltp
+                atp = full_feed.atp if hasattr(full_feed, "atp") else None
+                total_volume = int(full_feed.vtt) if hasattr(full_feed, "vtt") and full_feed.vtt else 0
+                tbq = full_feed.tbq if hasattr(full_feed, "tbq") else None
+                tsq = full_feed.tsq if hasattr(full_feed, "tsq") else None
+                oi = full_feed.oi if hasattr(full_feed, "oi") else None
+                state.update(ltp, atp, total_volume, tbq, tsq)
+                state.update_oi(oi)
+            except Exception:
+                pass
     return on_message
 
 
@@ -517,7 +518,7 @@ def scoring_and_ws_thread(access_token, my_generation):
                 f"Top-level keys found: {list(prep_data.keys())}"
             )
 
-        states, price_states_by_key, oi_states_by_key = {}, {}, {}
+        states, states_by_key = {}, {}
         instrument_keys = []
         for symbol, info in stock_entries.items():
             instrument_key = info["instrument_key"]
@@ -531,11 +532,14 @@ def scoring_and_ws_thread(access_token, my_generation):
                 info.get("prev_close"),
             )
             states[symbol] = state
-            price_states_by_key[instrument_key] = state
-            instrument_keys.append(instrument_key)
+            # Subscribe to futures for LTP/VWAP/volume/OI together - falls
+            # back to cash market only if no futures contract was resolved.
             if futures_key:
-                oi_states_by_key[futures_key] = state
+                states_by_key[futures_key] = state
                 instrument_keys.append(futures_key)
+            else:
+                states_by_key[instrument_key] = state
+                instrument_keys.append(instrument_key)
 
         with _app_lock:
             if _app["generation"] != my_generation:
@@ -549,7 +553,7 @@ def scoring_and_ws_thread(access_token, my_generation):
         ws_app = websocket.WebSocketApp(
             ws_url,
             on_open=make_on_open(instrument_keys),
-            on_message=make_on_message(price_states_by_key, oi_states_by_key),
+            on_message=make_on_message(states_by_key),
             on_error=on_error,
             on_close=on_close,
         )
