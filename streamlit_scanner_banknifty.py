@@ -99,6 +99,13 @@ def get_app_state():
         "last_scored_at": None,
         "status": "not started",
         "error": None,
+        "current_token": None,     # token currently in use by the running thread
+        "generation": 0,           # bumped on each (re)connect - lets an old
+                                    # background thread notice it's stale and
+                                    # stop, so switching tokens doesn't leave
+                                    # two threads running at once
+        "ws_app": None,            # reference to the live WebSocketApp, so a
+                                    # reconnect can cleanly close the old one
     }
 
 
@@ -479,21 +486,20 @@ def on_close(ws, code, msg):
         _app["status"] = "closed"
 
 
-def scoring_and_ws_thread():
-    """Runs once, in the background, for the lifetime of the Streamlit
-    server process. Connects the WebSocket and periodically scores
-    candidates, writing results into the shared _app dict for the UI to
-    read on each rerun."""
+def scoring_and_ws_thread(access_token, my_generation):
+    """Runs in the background. Connects the WebSocket and periodically
+    scores candidates, writing results into the shared _app dict for the
+    UI to read on each rerun. Checks `my_generation` against the shared
+    state each loop - if a newer connect_with_token() call has bumped the
+    generation counter (e.g. the user entered a new token), this older
+    thread notices and exits cleanly instead of running alongside the new
+    one indefinitely."""
     try:
         with _app_lock:
-            _app["status"] = "loading config"
-        config = load_config()
-        access_token = get_access_token(config)
-        if not access_token:
-            raise ValueError("No ACCESS_TOKEN or UPSTOX_ACCESS_TOKEN found in config.txt")
-
-        with _app_lock:
+            if _app["generation"] != my_generation:
+                return  # superseded before we even started
             _app["status"] = "loading prep JSON"
+
         prep_data = load_today_prep()
         stock_entries = prep_data.get("stocks", {})
         if not stock_entries:
@@ -522,6 +528,8 @@ def scoring_and_ws_thread():
                 instrument_keys.append(futures_key)
 
         with _app_lock:
+            if _app["generation"] != my_generation:
+                return
             _app["states"] = states
             _app["status"] = f"prep loaded ({len(states)} symbols), connecting websocket"
 
@@ -535,6 +543,11 @@ def scoring_and_ws_thread():
             on_error=on_error,
             on_close=on_close,
         )
+        with _app_lock:
+            if _app["generation"] != my_generation:
+                return
+            _app["ws_app"] = ws_app
+
         ws_thread = threading.Thread(
             target=lambda: ws_app.run_forever(
                 sslopt={"ca_certs": certifi.where(), "cert_reqs": ssl.CERT_REQUIRED}
@@ -543,8 +556,12 @@ def scoring_and_ws_thread():
         )
         ws_thread.start()
 
-        # Scoring loop - runs forever in this same background thread
+        # Scoring loop - runs until superseded by a newer generation (e.g.
+        # the user entered a different token) or the process ends.
         while True:
+            with _app_lock:
+                if _app["generation"] != my_generation:
+                    return
             now = datetime.now().time()
             if MARKET_OPEN <= now <= MARKET_CLOSE:
                 candidates = evaluate(states)
@@ -554,23 +571,46 @@ def scoring_and_ws_thread():
                     append_candidate_row(csv_paths["candidates"], c)
                 write_summary_snapshot(csv_paths["summary"], states)
                 with _app_lock:
+                    if _app["generation"] != my_generation:
+                        return
                     _app["last_candidates"] = candidates
                     _app["last_scored_at"] = timestamp
             time.sleep(SCORING_INTERVAL_SEC)
 
     except Exception as e:
         with _app_lock:
-            _app["error"] = f"{type(e).__name__}: {e}"
-            _app["status"] = "crashed"
+            if _app["generation"] == my_generation:
+                _app["error"] = f"{type(e).__name__}: {e}"
+                _app["status"] = "crashed"
 
 
-def ensure_started():
+def connect_with_token(access_token):
+    """(Re)starts the background thread with the given token. Safe to call
+    repeatedly with the same token (no-op if already connected with it);
+    calling with a different token cleanly closes the old connection and
+    starts a fresh one, without needing a full app reboot."""
     with _app_lock:
-        if _app["started"]:
-            return
+        if _app["started"] and _app["current_token"] == access_token:
+            return  # already connected with this exact token, nothing to do
+        old_ws_app = _app["ws_app"]
+        _app["generation"] += 1
+        _app["current_token"] = access_token
         _app["started"] = True
         _app["status"] = "starting"
-    t = threading.Thread(target=scoring_and_ws_thread, daemon=True)
+        _app["error"] = None
+        _app["states"] = {}
+        _app["last_candidates"] = []
+        _app["last_scored_at"] = None
+        _app["ws_app"] = None
+        my_generation = _app["generation"]
+
+    if old_ws_app is not None:
+        try:
+            old_ws_app.close()
+        except Exception:
+            pass
+
+    t = threading.Thread(target=scoring_and_ws_thread, args=(access_token, my_generation), daemon=True)
     t.start()
 
 
@@ -587,7 +627,51 @@ if pb is None:
     )
     st.stop()
 
-ensure_started()
+# --- Sidebar: token entry ---
+# Falls back to secrets.toml (cloud) / config.txt (local) as the default
+# value, so existing deployments keep working unchanged - the sidebar just
+# lets you view/override it without touching those files or rebooting the
+# whole app. Since Upstox's Analytics Token is valid long-term (not the
+# daily-expiring standard OAuth token), you may only need to set this once.
+st.sidebar.header("Configuration")
+_config = load_config()
+_default_token = get_access_token(_config) or ""
+
+if "access_token_input" not in st.session_state:
+    st.session_state["access_token_input"] = _default_token
+
+token_input = st.sidebar.text_input(
+    "Enter Access Token",
+    value=st.session_state["access_token_input"],
+    type="password",
+    key="access_token_input_widget",
+)
+
+col_connect, col_status = st.sidebar.columns([1, 1])
+connect_clicked = col_connect.button("Connect", use_container_width=True)
+
+with _app_lock:
+    _currently_connected_token = _app["current_token"]
+
+if connect_clicked and token_input:
+    st.session_state["access_token_input"] = token_input
+    connect_with_token(token_input)
+    st.rerun()
+
+if token_input and token_input == _currently_connected_token:
+    st.sidebar.success("Token loaded and connected")
+elif token_input:
+    st.sidebar.info("Token entered - click Connect to use it")
+else:
+    st.sidebar.warning("Enter your Upstox access token above to start")
+
+# Auto-connect once on first load if a token is already available from
+# secrets/config.txt and nothing is running yet - preserves the old
+# zero-click behavior for cloud deployments using Secrets.
+with _app_lock:
+    _already_started = _app["started"]
+if not _already_started and _default_token:
+    connect_with_token(_default_token)
 
 with _app_lock:
     status = _app["status"]
