@@ -70,27 +70,36 @@ ZONE_CLUSTER_PCT = 0.15            # cluster S/R levels within 0.15% of each oth
 
 
 def load_config():
-    """Reads access token from config.txt (key=value format)."""
+    """Reads access token from config.txt (key=value format) if present.
+    Missing entirely is not fatal here - get_access_token() also checks
+    environment variables (used by the GitHub Actions automated run,
+    which has no config.txt available)."""
     config = {}
-    if not os.path.exists(CONFIG_FILE):
-        raise FileNotFoundError(
-            f"config.txt not found at {CONFIG_FILE}. "
-            "Expected a line like: ACCESS_TOKEN=your_token_here"
-        )
-    with open(CONFIG_FILE, "r") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, val = line.split("=", 1)
-            config[key.strip()] = val.strip()
-    if "ACCESS_TOKEN" not in config and "UPSTOX_ACCESS_TOKEN" not in config:
-        raise ValueError("ACCESS_TOKEN (or UPSTOX_ACCESS_TOKEN) missing in config.txt")
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                config[key.strip()] = val.strip()
     return config
 
 
 def get_access_token(config):
-    return config.get("ACCESS_TOKEN") or config.get("UPSTOX_ACCESS_TOKEN")
+    """Checks environment variables first (for the automated GitHub Actions
+    run), then falls back to config.txt (for local runs) - so the exact
+    same script works in both places without changes."""
+    env_token = os.environ.get("ACCESS_TOKEN") or os.environ.get("UPSTOX_ACCESS_TOKEN")
+    if env_token:
+        return env_token
+    token = config.get("ACCESS_TOKEN") or config.get("UPSTOX_ACCESS_TOKEN")
+    if not token:
+        raise ValueError(
+            "No ACCESS_TOKEN found - set it in config.txt or as an "
+            "ACCESS_TOKEN environment variable."
+        )
+    return token
 
 
 def get_headers(access_token):
