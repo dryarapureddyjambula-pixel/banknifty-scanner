@@ -1,0 +1,55 @@
+name: Morning Prep - Bank Nifty
+
+# Runs automatically every weekday before market open (9:15 AM IST).
+# GitHub Actions only understands UTC, so 03:00 UTC = 8:30 AM IST - a
+# 45-minute buffer before open, since scheduled workflows can sometimes
+# start a few minutes late.
+#
+# This runs entirely on GitHub's own servers - your PC does not need to be
+# on, and no local terminal interaction is needed. Streamlit Cloud already
+# auto-redeploys whenever it sees a new push to this repo, so the deployed
+# dashboard picks up the fresh data automatically once this job finishes -
+# no manual reboot needed either.
+#
+# One-time setup required (see bottom of this file for details):
+#   1. Add your Upstox access token as a repository secret named ACCESS_TOKEN
+#   2. Make sure "Read and write permissions" is enabled for Actions
+#      (Settings -> Actions -> General -> Workflow permissions)
+
+on:
+  schedule:
+    - cron: "0 3 * * 1-5"   # 03:00 UTC, Monday-Friday
+  workflow_dispatch: {}      # also allows manually triggering a run from
+                              # the GitHub Actions tab, e.g. to test this
+                              # setup without waiting for the schedule
+
+permissions:
+  contents: write
+
+jobs:
+  run-prep:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run morning prep script
+        env:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+        run: python morning_prep_banknifty.py
+
+      - name: Commit and push updated prep data (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add prep_output
+          git diff --cached --quiet && echo "No changes to commit" || \
+            (git commit -m "Automated prep data update - $(date -u +'%Y-%m-%d')" && git push)
