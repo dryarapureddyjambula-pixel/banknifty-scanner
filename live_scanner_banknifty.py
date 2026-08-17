@@ -71,6 +71,14 @@ import sys
 import time
 import threading
 from datetime import datetime, time as dtime
+from zoneinfo import ZoneInfo
+
+# Always use IST explicitly for market-hours/time-bucket logic, regardless
+# of the machine's system timezone - see streamlit_scanner_banknifty.py
+# for the full explanation (this bit us on Streamlit Cloud, which runs
+# UTC; harmless here if your PC's clock is already IST, but keeping both
+# scripts consistent and correct regardless of where this ever runs).
+IST = ZoneInfo("Asia/Kolkata")
 
 import certifi
 import requests
@@ -246,7 +254,7 @@ class SymbolState:
     def rvol(self):
         """Compares current cumulative volume to the baseline curve's value
         at the nearest earlier time bucket."""
-        now_str = datetime.now().strftime("%H:%M")
+        now_str = datetime.now(IST).strftime("%H:%M")
         buckets = sorted(self.rvol_baseline.keys())
         matched = None
         for b in buckets:
@@ -422,14 +430,14 @@ def scoring_loop(states, stop_event):
     csv_paths = init_daily_csvs()
 
     while not stop_event.is_set():
-        now = datetime.now().time()
+        now = datetime.now(IST).time()
 
         if now < MARKET_OPEN or now > MARKET_CLOSE:
             time.sleep(5)
             continue
 
         candidates = evaluate(states)
-        timestamp = datetime.now().strftime("%H:%M:%S")
+        timestamp = datetime.now(IST).strftime("%H:%M:%S")
         print(f"\n--- {timestamp} | Candidates: {len(candidates)} (sorted by RVOL, high to low) ---")
         for c in candidates:
             flag = "  " if c["bias"] == "bullish" else "**"  # simple visual cue for warnings
@@ -463,7 +471,7 @@ def init_daily_csvs():
     so files exist on disk from the very start of the session rather than
     only at the end - nothing to lose if the process dies unexpectedly."""
     os.makedirs(EOD_LOG_DIR, exist_ok=True)
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = datetime.now(IST).strftime("%Y-%m-%d")
     summary_path = os.path.join(EOD_LOG_DIR, f"eod_summary_{date_str}.csv")
     candidates_path = os.path.join(EOD_LOG_DIR, f"eod_candidates_{date_str}.csv")
 
@@ -493,7 +501,7 @@ def write_summary_snapshot(summary_path, states):
             rows.append([
                 symbol, state.last_price, state.atp, state.cum_volume,
                 state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
-                datetime.now().strftime("%H:%M:%S"),
+                datetime.now(IST).strftime("%H:%M:%S"),
             ])
 
     with open(summary_path, "w", newline="") as f:

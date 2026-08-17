@@ -42,6 +42,15 @@ import sys
 import time
 import threading
 from datetime import datetime, time as dtime
+from zoneinfo import ZoneInfo
+
+# Market-hours and RVOL time-bucket comparisons need the actual current
+# time in IST, not whatever timezone the server happens to run in.
+# Cloud servers (e.g. Streamlit Community Cloud) typically run in UTC -
+# using bare datetime.now() there compares UTC clock time against IST
+# market-hour boundaries, silently showing "outside market hours" during
+# actual live trading hours. Always localize to IST explicitly instead.
+IST = ZoneInfo("Asia/Kolkata")
 
 import certifi
 import requests
@@ -106,6 +115,8 @@ def get_app_state():
                                     # two threads running at once
         "ws_app": None,            # reference to the live WebSocketApp, so a
                                     # reconnect can cleanly close the old one
+        "simulation_enabled": False,  # TEST-ONLY: injects fake ticks, see
+                                       # simulation_thread() - never real data
     }
 
 
@@ -251,7 +262,7 @@ class SymbolState:
             return self.atp
 
     def rvol(self):
-        now_str = datetime.now().strftime("%H:%M")
+        now_str = datetime.now(IST).strftime("%H:%M")
         buckets = sorted(self.rvol_baseline.keys())
         matched = None
         for b in buckets:
@@ -382,7 +393,7 @@ def evaluate(states):
 # ---------------------------------------------------------------------------
 def init_daily_csvs():
     os.makedirs(EOD_LOG_DIR, exist_ok=True)
-    date_str = datetime.now().strftime("%Y-%m-%d")
+    date_str = datetime.now(IST).strftime("%Y-%m-%d")
     summary_path = os.path.join(EOD_LOG_DIR, f"eod_summary_{date_str}.csv")
     candidates_path = os.path.join(EOD_LOG_DIR, f"eod_candidates_{date_str}.csv")
     if not os.path.exists(summary_path):
@@ -407,7 +418,7 @@ def write_summary_snapshot(summary_path, states):
             rows.append([
                 symbol, state.last_price, state.atp, state.cum_volume,
                 state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
-                datetime.now().strftime("%H:%M:%S"),
+                datetime.now(IST).strftime("%H:%M:%S"),
             ])
     with open(summary_path, "w", newline="") as f:
         writer = csv.writer(f)
@@ -576,10 +587,10 @@ def scoring_and_ws_thread(access_token, my_generation):
             with _app_lock:
                 if _app["generation"] != my_generation:
                     return
-            now = datetime.now().time()
+            now = datetime.now(IST).time()
             if MARKET_OPEN <= now <= MARKET_CLOSE:
                 candidates = evaluate(states)
-                timestamp = datetime.now().strftime("%H:%M:%S")
+                timestamp = datetime.now(IST).strftime("%H:%M:%S")
                 for c in candidates:
                     c["timestamp"] = timestamp
                     append_candidate_row(csv_paths["candidates"], c)
@@ -626,6 +637,49 @@ def connect_with_token(access_token):
 
     t = threading.Thread(target=scoring_and_ws_thread, args=(access_token, my_generation), daemon=True)
     t.start()
+
+
+# ---------------------------------------------------------------------------
+# TEST-ONLY simulation mode - NEVER real market data
+# ---------------------------------------------------------------------------
+# Injects randomized-but-plausible ticks into every loaded stock, so the
+# exact same scoring pipeline that runs on real market data (rvol/OI/
+# aggression/trend computation across all 208 stocks, every 60s) gets
+# genuinely exercised on THIS deployment (e.g. Streamlit Cloud) right now,
+# even while markets are closed - the only way to know in advance whether
+# cloud's more limited CPU/memory holds up under repeated real computation,
+# rather than assuming a working WebSocket connection is sufficient (it
+# only proves data arrives, not that the downstream scoring loop keeps up).
+def simulation_thread(my_generation):
+    import random
+    rnd = random.Random(42)
+    while True:
+        with _app_lock:
+            if _app["generation"] != my_generation or not _app.get("simulation_enabled"):
+                return
+            states = dict(_app["states"])
+        for state in states.values():
+            base = state.prev_close or 100.0
+            # Random walk around prev_close, small realistic-looking OI/volume growth
+            new_price = round(base * (1 + rnd.uniform(-0.03, 0.03)), 2)
+            new_vwap = round(base * (1 + rnd.uniform(-0.02, 0.02)), 2)
+            vol_increment = rnd.randint(1000, 50000)
+            new_volume = state.cum_volume + vol_increment
+            tbq = rnd.randint(1000, 20000)
+            tsq = rnd.randint(1000, 20000)
+            state.update(new_price, new_vwap, new_volume, tbq, tsq)
+            oi_base = state.oi_current or 500000
+            state.update_oi(oi_base + rnd.randint(-5000, 5000))
+        time.sleep(2)
+
+
+def toggle_simulation(enabled):
+    with _app_lock:
+        _app["simulation_enabled"] = enabled
+        my_generation = _app["generation"]
+    if enabled:
+        t = threading.Thread(target=simulation_thread, args=(my_generation,), daemon=True)
+        t.start()
 
 
 # ---------------------------------------------------------------------------
@@ -679,6 +733,25 @@ elif token_input:
 else:
     st.sidebar.warning("Enter your Upstox access token above to start")
 
+st.sidebar.divider()
+st.sidebar.subheader("⚠️ Testing tools")
+with _app_lock:
+    _sim_currently_on = _app.get("simulation_enabled", False)
+sim_toggle = st.sidebar.checkbox(
+    "Simulation mode (FAKE data - testing only)",
+    value=_sim_currently_on,
+    help="Injects randomized fake ticks into all stocks to stress-test the "
+         "scoring pipeline on this deployment (e.g. to check Streamlit "
+         "Cloud handles it) without waiting for real market hours. "
+         "NEVER represents real prices - candidates shown while this is on "
+         "are meaningless for actual trading. Turn off before market open.",
+)
+if sim_toggle != _sim_currently_on:
+    toggle_simulation(sim_toggle)
+    st.rerun()
+if sim_toggle:
+    st.sidebar.error("🔴 SIMULATION MODE ON — all data below is FAKE, not real market data")
+
 # Auto-connect once on first load if a token is already available from
 # secrets/config.txt and nothing is running yet - preserves the old
 # zero-click behavior for cloud deployments using Secrets.
@@ -693,6 +766,15 @@ with _app_lock:
     candidates = list(_app["last_candidates"])
     last_scored_at = _app["last_scored_at"]
     states_snapshot = dict(_app["states"])
+    _sim_active = _app.get("simulation_enabled", False)
+
+if _sim_active:
+    st.error(
+        "🔴 SIMULATION MODE ACTIVE — every number on this page is randomly "
+        "generated fake data for stress-testing only. Nothing here reflects "
+        "real prices or real market conditions. Turn this off in the "
+        "sidebar before using this for actual trading decisions."
+    )
 
 col1, col2, col3 = st.columns(3)
 col1.metric("Connection status", status)
@@ -719,7 +801,7 @@ with st.expander("Debug info (click if something looks stuck)"):
 if error:
     st.error(f"Background thread error: {error}")
 
-now_time = datetime.now().time()
+now_time = datetime.now(IST).time()
 if not (MARKET_OPEN <= now_time <= MARKET_CLOSE):
     st.warning(
         f"Outside market hours ({MARKET_OPEN.strftime('%H:%M')}-"
