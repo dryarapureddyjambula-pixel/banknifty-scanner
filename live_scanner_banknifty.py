@@ -491,18 +491,24 @@ def init_daily_csvs():
 def write_summary_snapshot(summary_path, states):
     """Overwrites the summary CSV with current values. Called every scoring
     cycle (not just at exit), so the file is always close to up to date on
-    disk regardless of how/when the process ends."""
+    disk regardless of how/when the process ends.
+
+    NOTE: does NOT wrap the loop body in `with state.lock:` - oi_direction()
+    acquires state.lock internally already. Nesting a second acquire on a
+    plain (non-reentrant) threading.Lock from the same thread deadlocks it
+    forever - this was the actual bug (same pattern fixed earlier today in
+    streamlit_scanner_banknifty.py) that silently prevented this function
+    from ever writing any data rows."""
     rows = []
     for symbol, state in states.items():
-        with state.lock:
-            oi_change_pct = None
-            if state.oi_open and state.oi_current:
-                oi_change_pct = round((state.oi_current - state.oi_open) / state.oi_open * 100, 2)
-            rows.append([
-                symbol, state.last_price, state.atp, state.cum_volume,
-                state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
-                datetime.now(IST).strftime("%H:%M:%S"),
-            ])
+        oi_change_pct = None
+        if state.oi_open and state.oi_current:
+            oi_change_pct = round((state.oi_current - state.oi_open) / state.oi_open * 100, 2)
+        rows.append([
+            symbol, state.last_price, state.atp, state.cum_volume,
+            state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
+            datetime.now(IST).strftime("%H:%M:%S"),
+        ])
 
     with open(summary_path, "w", newline="") as f:
         writer = csv.writer(f)
