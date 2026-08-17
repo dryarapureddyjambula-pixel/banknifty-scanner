@@ -409,17 +409,26 @@ def init_daily_csvs():
 
 
 def write_summary_snapshot(summary_path, states):
+    """NOTE: does NOT wrap the loop body in `with state.lock:` - oi_direction()
+    acquires state.lock internally already. Nesting a second acquire on a
+    plain (non-reentrant) threading.Lock from the same thread deadlocks it
+    forever - this was a REAL bug: since this function is called every
+    scoring cycle BEFORE _app["last_candidates"]/["last_scored_at"] get
+    updated, the deadlock silently froze the ENTIRE background scoring
+    thread the moment it first ran during real market hours - explaining
+    "Last scored at: -" and "Candidates: 0" staying stuck all day, every
+    day, despite the WebSocket connection itself staying healthy (ticks
+    are handled by a separate thread, unaffected by this hang)."""
     rows = []
     for symbol, state in states.items():
-        with state.lock:
-            oi_change_pct = None
-            if state.oi_open and state.oi_current:
-                oi_change_pct = round((state.oi_current - state.oi_open) / state.oi_open * 100, 2)
-            rows.append([
-                symbol, state.last_price, state.atp, state.cum_volume,
-                state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
-                datetime.now(IST).strftime("%H:%M:%S"),
-            ])
+        oi_change_pct = None
+        if state.oi_open and state.oi_current:
+            oi_change_pct = round((state.oi_current - state.oi_open) / state.oi_open * 100, 2)
+        rows.append([
+            symbol, state.last_price, state.atp, state.cum_volume,
+            state.oi_open, state.oi_current, oi_change_pct, state.oi_direction(),
+            datetime.now(IST).strftime("%H:%M:%S"),
+        ])
     with open(summary_path, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([
